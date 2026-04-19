@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS Sentinel Apex V4.0 | Arthur 決策終端</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        jarvis: { bg: '#020617', panel: '#0f172a', accent: '#22d3ee', danger: '#ef4444', success: '#4ade80', warning: '#f59e0b' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #020617; color: #f8fafc; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .status-pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        #mermaid-container svg { width: 100% !important; height: 500px !important; cursor: grab; }
+    </style>
+</head>
+<body class="p-4 min-h-screen overflow-x-hidden">
+
+    <header class="flex justify-between items-center mb-6 glass rounded-xl p-4 shadow-2xl border-l-4 border-jarvis-accent">
+        <div class="flex items-center gap-4">
+            <div class="p-3 bg-jarvis-accent/10 rounded-lg"><i class="fas fa-shield-halved text-jarvis-accent text-2xl"></i></div>
+            <div>
+                <h1 class="text-2xl font-bold tracking-tighter italic">SENTINEL APEX <span class="text-jarvis-accent">V4.0</span></h1>
+                <p class="text-xs text-gray-400 mono">KAOHSIUNG NODE: ACTIVE | ARTHUR STRATEGIC COMMAND</p>
+            </div>
+        </div>
+        <div class="flex gap-6 text-sm">
+            <div class="text-right">
+                <p class="text-gray-500 uppercase text-[10px] font-bold">Market Data API</p>
+                <p class="text-jarvis-success flex items-center gap-2"><span class="w-2 h-2 bg-jarvis-success rounded-full status-pulse"></span> FUGLE-READY</p>
+            </div>
+            <div class="text-right border-l border-gray-700 pl-6">
+                <p class="text-gray-500 uppercase text-[10px] font-bold">Historical Data API</p>
+                <p class="text-jarvis-accent flex items-center gap-2">FINMIND-CONNECTED</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <section class="lg:col-span-4 space-y-6">
+            <div class="glass rounded-xl p-6 space-y-4">
+                <h2 class="text-lg font-bold flex items-center gap-2 text-jarvis-accent border-b border-gray-700 pb-2">
+                    <i class="fas fa-sliders"></i> 戰略參數即時調整 (SD)
+                </h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] text-gray-500 font-bold uppercase">標的代號</label>
+                        <input type="text" id="stockId" value="2330" class="w-full bg-black/40 border border-gray-700 rounded p-2 text-jarvis-accent mono focus:border-jarvis-accent outline-none">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] text-gray-500 font-bold uppercase">模擬報價</label>
+                        <input type="number" id="currentPrice" value="2030" step="0.1" class="w-full bg-black/40 border border-gray-700 rounded p-2 text-jarvis-accent mono outline-none" oninput="calculateTC03()">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] text-gray-500 font-bold uppercase">持倉成本</label>
+                        <input type="number" id="myCost" value="10.02" step="0.01" class="w-full bg-black/40 border border-gray-700 rounded p-2 text-white mono outline-none" oninput="calculateTC03()">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] text-gray-500 font-bold uppercase">追平支撐點</label>
+                        <input type="number" id="tc03Target" value="9.7" step="0.1" class="w-full bg-black/40 border border-jarvis-danger/50 rounded p-2 text-jarvis-danger mono outline-none" oninput="calculateTC03()">
+                    </div>
+                </div>
+                <button class="w-full bg-jarvis-accent/20 hover:bg-jarvis-accent/40 text-jarvis-accent font-bold py-2 rounded border border-jarvis-accent/50 transition duration-300">
+                    <i class="fas fa-sync-alt mr-2"></i> 同步 API 最新籌碼
+                </button>
+            </div>
+
+            <div id="tc03-alert" class="rounded-xl p-6 border-2 transition-all duration-500">
+                <div class="flex justify-between items-start mb-4">
+                    <h2 class="text-lg font-bold flex items-center gap-2">
+                        <i class="fas fa-microchip"></i> TC-03 演算法輸出
+                    </h2>
+                    <span id="status-tag" class="px-2 py-1 rounded text-[10px] font-bold uppercase"></span>
+                </div>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-end border-b border-white/10 pb-2">
+                        <p class="text-xs text-gray-400">執行後新均價</p>
+                        <p id="newCost" class="text-2xl font-bold mono">--</p>
+                    </div>
+                    <div class="flex justify-between items-end border-b border-white/10 pb-2">
+                        <p class="text-xs text-gray-400">成本降低率</p>
+                        <p id="reduction" class="text-xl font-bold mono text-jarvis-success">--</p>
+                    </div>
+                    <p id="advise" class="text-xs text-gray-300 italic"></p>
+                </div>
+            </div>
+        </section>
+
+        <section class="lg:col-span-8 space-y-6">
+            <div class="glass rounded-xl p-6">
+                <h2 class="text-lg font-bold mb-4 flex items-center gap-2 border-b border-gray-700 pb-2">
+                    <i class="fas fa-chart-line text-jarvis-accent"></i> 核心籌碼戰略矩陣 (本週五 04/17 收盤)
+                </h2>
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-sm">
+                        <thead class="text-gray-500 uppercase text-[10px]">
+                            <tr class="border-b border-gray-800">
+                                <th class="py-3 px-2">代號</th><th class="py-3 px-2">名稱</th>
+                                <th class="py-3 px-2">收盤價</th><th class="py-3 px-2">外資</th>
+                                <th class="py-3 px-2">投信</th><th class="py-3 px-2">判定</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-800/50 text-gray-300">
+                            <tr><td class="py-3 px-2 mono">2330</td><td class="py-3 px-2 font-bold text-white">台積電</td><td class="py-3 px-2">2,030.00</td><td class="py-3 px-2 text-jarvis-success">買超</td><td class="py-3 px-2 text-jarvis-success">買超</td><td class="py-3 px-2 text-xs">算力核心</td></tr>
+                            <tr><td class="py-3 px-2 mono">2303</td><td class="py-3 px-2 font-bold text-white">聯電</td><td class="py-3 px-2">73.00</td><td class="py-3 px-2 text-jarvis-success">大買</td><td class="py-3 px-2 text-jarvis-success">大買</td><td class="py-3 px-2 text-xs text-jarvis-warning">防禦首選</td></tr>
+                            <tr class="bg-red-900/10"><td class="py-3 px-2 mono">2409</td><td class="py-3 px-2 font-bold text-jarvis-danger">友達</td><td class="py-3 px-2">19.85</td><td class="py-3 px-2 text-jarvis-danger">大賣</td><td class="py-3 px-2 text-jarvis-danger">賣超</td><td class="py-3 px-2 text-xs text-jarvis-danger">資金撤離</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="glass rounded-xl p-6 relative">
+                <h2 class="text-lg font-bold mb-4 flex justify-between items-center border-b border-gray-700 pb-2 text-jarvis-accent">
+                    <span><i class="fas fa-project-diagram"></i> 戰略決策演算法地圖 (可縮放)</span>
+                    <span class="text-[10px] text-gray-500 mono">WHEEL TO ZOOM / DRAG TO PAN</span>
+                </h2>
+                <div id="mermaid-container" class="bg-black/20 rounded-lg">
+                    <div class="mermaid">
+                        graph TD
+                        classDef default fill:#0f172a,stroke:#1e293b,color:#f8fafc,stroke-width:1px;
+                        classDef danger fill:#450a0a,stroke:#ef4444,color:#fff,stroke-width:2px;
+                        classDef active fill:#1e1b4b,stroke:#22d3ee,color:#22d3ee,stroke-width:2px;
+
+                        Start(09:00 開盤掃描) --> B{板塊迷霧判定}
+                        B -- 劇本 A/B --> C[TC-01 靜默協議]
+                        B -- 錯殺急跌 --> E{觸及支撐位 9.7?}
+                        E -- 是 --> F(TC-03 執行追平加碼)
+                        E -- 否 --> G(維持現狀 / 保留資金)
+                        B -- 籌碼衝突 --> H[TC-02 避開交火區]
+
+                        class F danger;
+                        class Start,B active;
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+
+        function calculateTC03() {
+            const current = parseFloat(document.getElementById('currentPrice').value);
+            const myCost = parseFloat(document.getElementById('myCost').value);
+            const target = parseFloat(document.getElementById('tc03Target').value);
+            const alertBox = document.getElementById('tc03-alert');
+            const statusTag = document.getElementById('status-tag');
+            
+            // 模擬加碼：買入同等張數 (1:1)
+            const newCost = (myCost + target) / 2;
+            const reduction = ((myCost - newCost) / myCost * 100).toFixed(2);
+
+            document.getElementById('newCost').innerText = newCost.toFixed(3);
+            document.getElementById('reduction').innerText = `-${reduction}%`;
+
+            if (current <= target) {
+                alertBox.className = "glass rounded-xl p-6 border-2 border-jarvis-danger bg-jarvis-danger/10 shadow-[0_0_20px_rgba(239,68,68,0.3)]";
+                statusTag.innerText = "Execute Command";
+                statusTag.className = "px-2 py-1 rounded text-[10px] font-bold uppercase bg-jarvis-danger text-white";
+                document.getElementById('advise').innerText = "當前報價已跌破支撐線，啟動雙核疊加判斷：若法人無連續性拋售，即刻執行追平加碼。";
+            } else {
+                alertBox.className = "glass rounded-xl p-6 border-2 border-gray-700";
+                statusTag.innerText = "Monitoring";
+                statusTag.className = "px-2 py-1 rounded text-[10px] font-bold uppercase bg-gray-700 text-gray-300";
+                document.getElementById('advise').innerText = "價格尚在防守區間上方，維持 TC-01 靜默觀察，嚴禁無意義之攤平。";
+            }
+        }
+
+        // 初始化縮放功能
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                const svg = document.querySelector('#mermaid-container svg');
+                if (svg) {
+                    svgPanZoom(svg, {
+                        zoomEnabled: true,
+                        controlIconsEnabled: true,
+                        fit: true,
+                        center: true
+                    });
+                }
+            }, 1000);
+            calculateTC03();
+        });
+    </script>
+</body>
+</html>
