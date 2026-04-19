@@ -3,582 +3,1501 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>SENTINEL APEX V5.1 | 全球資金戰情室</title>
+<title>SENTINEL APEX V6.0 | 全球資金戰情室</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson@3/dist/topojson.min.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Noto+Sans+TC:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,700;1,400&family=Noto+Sans+TC:wght@400;500;700&display=swap');
 
-:root{
-  --bg:#00070e;--card:rgba(2,12,24,.93);
-  --b1:rgba(0,160,200,.13);
-  --ac:#00bcd4;--acd:rgba(0,188,212,.09);
-  --gr:#00e676;--grd:rgba(0,230,118,.09);
-  --rd:#f44336;--rdd:rgba(244,67,54,.09);
-  --yw:#ffc107;--pu:#ab47bc;
-  --tx:#b0bec5;--mu:#263748;--mu2:#546e7a;
-  --map-ocean:#010b15;--map-land:#07182a;--map-focus:#0c2238;--map-tw:#00bcd4;
+:root {
+  --bg: #060d1a;
+  --bg2: #0a1325;
+  --card: rgba(10,19,37,0.96);
+  --border: rgba(56,189,248,0.12);
+  --border2: rgba(56,189,248,0.22);
+  --ac: #38bdf8;    /* sky blue */
+  --gr: #4ade80;    /* green */
+  --rd: #f87171;    /* red */
+  --yw: #fbbf24;    /* amber */
+  --pu: #c084fc;    /* purple */
+  --tx: #e2e8f0;    /* main text */
+  --tx2: #94a3b8;   /* secondary text */
+  --tx3: #64748b;   /* muted */
+  --glo: rgba(56,189,248,0.06);
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden}
-.mono{font-family:'JetBrains Mono',monospace}
-body::before{content:'';position:fixed;width:900px;height:900px;
-  background:radial-gradient(circle,rgba(0,188,212,.04) 0%,transparent 65%);
-  top:-8%;left:50%;transform:translateX(-50%);pointer-events:none;
-  animation:ambG 15s ease-in-out infinite alternate;z-index:0}
-@keyframes ambG{from{opacity:.5;transform:translateX(-50%) scale(1)}to{opacity:.9;transform:translateX(-50%) scale(1.15)}}
-.g1{background:var(--card);backdrop-filter:blur(20px);border:1px solid var(--b1);border-radius:10px}
-.g2{background:rgba(0,0,0,.32);border:1px solid var(--b1);border-radius:7px}
-.ldot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gr);
-  box-shadow:0 0 5px var(--gr);animation:ld 1.6s ease-in-out infinite}
-@keyframes ld{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.2;transform:scale(.6)}}
-.sp{display:inline-block;width:12px;height:12px;border:1.5px solid var(--b1);
-  border-top-color:var(--ac);border-radius:50%;animation:sp .6s linear infinite}
-@keyframes sp{to{transform:rotate(360deg)}}
-/* ticker */
-.tkwrap{overflow:hidden;white-space:nowrap}
-.tkinner{display:inline-flex;gap:44px;animation:tkSc 85s linear infinite}
-@keyframes tkSc{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-/* map */
-.map-ocean{fill:var(--map-ocean)}
-.map-land{fill:var(--map-land);stroke:#0a1f30;stroke-width:.3;transition:fill .5s}
-.map-focus{fill:var(--map-focus);stroke:#0d2840;stroke-width:.35}
-.map-grid{fill:none;stroke:rgba(0,188,212,.04);stroke-width:.4}
-/* flow lines — no big blobs, clean dashes */
-.flow-line{fill:none;stroke-width:1;stroke-dasharray:6 5;animation:fd 2.8s linear infinite}
-.flow-buy{stroke:var(--gr)}
-.flow-sell{stroke:var(--rd)}
-@keyframes fd{from{stroke-dashoffset:0}to{stroke-dashoffset:-33}}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  font-family: 'Noto Sans TC', sans-serif;
+  background: var(--bg);
+  color: var(--tx);
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.5;
+}
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+/* ambient glow */
+body::before {
+  content: '';
+  position: fixed;
+  width: 800px; height: 800px;
+  background: radial-gradient(circle, rgba(56,189,248,.038) 0%, transparent 68%);
+  top: -10%; left: 50%; transform: translateX(-50%);
+  pointer-events: none; z-index: 0;
+  animation: ag 18s ease-in-out infinite alternate;
+}
+@keyframes ag { from { opacity:.4; } to { opacity:.85; } }
+
+/* cards */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  backdrop-filter: blur(16px);
+}
+.card2 {
+  background: rgba(0,0,0,.35);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+
+/* live dot */
+.ldot {
+  display: inline-block; width: 7px; height: 7px;
+  border-radius: 50%; background: var(--gr);
+  box-shadow: 0 0 5px var(--gr);
+  animation: ld 1.8s ease-in-out infinite;
+}
+@keyframes ld { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.2;transform:scale(.55)} }
+
+/* spinner */
+.sp {
+  display: inline-block; width: 13px; height: 13px;
+  border: 1.5px solid var(--border2);
+  border-top-color: var(--ac);
+  border-radius: 50%;
+  animation: sp .6s linear infinite;
+}
+@keyframes sp { to { transform: rotate(360deg); } }
+
+/* section label */
+.slbl {
+  display: flex; align-items: center; gap: 7px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--tx2);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+
+/* badge */
+.badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 8px; border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.bl { background: rgba(74,222,128,.09); color: var(--gr); border: 1px solid rgba(74,222,128,.22); }
+.bd { background: rgba(251,191,36,.08); color: var(--yw); border: 1px solid rgba(251,191,36,.2); }
+.ba { background: rgba(56,189,248,.09); color: var(--ac); border: 1px solid rgba(56,189,248,.22); }
+.br { background: rgba(248,113,113,.09); color: var(--rd); border: 1px solid rgba(248,113,113,.22); }
+
 /* inputs */
-input.ain{background:rgba(0,0,0,.45);border:1px solid var(--b1);border-radius:6px;
-  color:var(--ac);font-family:'JetBrains Mono',monospace;font-size:12px;
-  padding:6px 10px;outline:none;width:100%;transition:border-color .2s}
-input.ain:focus{border-color:var(--ac)}
-input.ain::placeholder{color:var(--mu)}
-input.ain.danger{border-color:rgba(244,67,54,.4);color:var(--rd)}
-input.ain.warn{border-color:rgba(255,193,7,.35);color:var(--yw)}
-/* buttons */
-.abtn{background:linear-gradient(135deg,var(--acd),transparent);border:1px solid rgba(0,188,212,.32);
-  border-radius:6px;color:var(--ac);cursor:pointer;font-family:'JetBrains Mono',monospace;
-  font-size:10px;font-weight:700;letter-spacing:.07em;padding:6px 12px;
-  text-transform:uppercase;transition:all .18s;white-space:nowrap}
-.abtn:hover{background:rgba(0,188,212,.18);box-shadow:0 0 10px rgba(0,188,212,.2)}
-.abtn:active{transform:scale(.97)}
-.abtn-sm{font-size:9px;padding:4px 9px;border-radius:5px}
-/* badges */
-.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:3px;
-  font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
-.b-live{background:var(--grd);color:var(--gr);border:1px solid rgba(0,230,118,.22)}
-.b-demo{background:rgba(255,193,7,.07);color:var(--yw);border:1px solid rgba(255,193,7,.18)}
-.b-buy{background:var(--grd);color:var(--gr);border:1px solid rgba(0,230,118,.18)}
-.b-sell{background:var(--rdd);color:var(--rd);border:1px solid rgba(244,67,54,.18)}
-.b-hold{background:rgba(255,193,7,.07);color:var(--yw);border:1px solid rgba(255,193,7,.16)}
-.b-exec{background:rgba(244,67,54,.16);color:var(--rd);border:1px solid var(--rd)}
-.b-info{background:var(--acd);color:var(--ac);border:1px solid rgba(0,188,212,.25)}
-/* risk bars */
-.rbg{height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden}
-.rfill{height:100%;border-radius:2px;transition:width .9s ease,background .4s}
+input.ain {
+  background: rgba(0,0,0,.5);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  color: var(--ac);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  padding: 7px 11px;
+  outline: none; width: 100%;
+  transition: border-color .18s;
+}
+input.ain:focus { border-color: var(--ac); }
+input.ain::placeholder { color: var(--tx3); }
+input.ain.danger { border-color: rgba(248,113,113,.45); color: var(--rd); }
+input.ain.warn { border-color: rgba(251,191,36,.4); color: var(--yw); }
+
+/* button */
+.btn {
+  background: rgba(56,189,248,.1);
+  border: 1px solid rgba(56,189,248,.3);
+  border-radius: 6px;
+  color: var(--ac);
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: .07em; padding: 7px 14px;
+  text-transform: uppercase;
+  transition: all .18s; white-space: nowrap;
+}
+.btn:hover { background: rgba(56,189,248,.22); box-shadow: 0 0 10px rgba(56,189,248,.2); }
+.btn:active { transform: scale(.97); }
+.btn-sm { font-size: 9px; padding: 4px 9px; border-radius: 5px; }
+.btn-red { border-color: rgba(248,113,113,.3); color: var(--rd); background: rgba(248,113,113,.07); }
+.btn-red:hover { background: rgba(248,113,113,.16); }
+
+/* ticker */
+.tk-wrap { overflow: hidden; white-space: nowrap; background: rgba(10,19,37,.85); border-bottom: 1px solid var(--border); }
+.tk-inner { display: inline-flex; gap: 40px; animation: tks 90s linear infinite; padding: 5px 0; }
+@keyframes tks { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* divider */
+.dv { height: 1px; background: var(--border); margin: 10px 0; }
+
 /* table */
-.at th{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;
-  letter-spacing:.09em;color:var(--mu2);padding:6px 9px;border-bottom:1px solid var(--b1)}
-.at td{padding:7px 9px;font-size:11px;border-bottom:1px solid rgba(255,255,255,.025);vertical-align:middle}
-.at tr:last-child td{border-bottom:none}
-.at tr:hover td{background:rgba(0,188,212,.03)}
-/* colors */
-.cg{color:var(--gr)}.cr{color:var(--rd)}.ca{color:var(--ac)}.cy{color:var(--yw)}.cm{color:var(--mu2)}
-/* layout */
-.mgrid{display:grid;grid-template-columns:310px 1fr 270px;gap:11px;padding:0 11px 11px;position:relative;z-index:1}
-@media(max-width:1280px){.mgrid{grid-template-columns:1fr}}
-.cstack{display:flex;flex-direction:column;gap:11px}
-.slbl{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.13em;text-transform:uppercase;
-  color:var(--mu2);display:flex;align-items:center;gap:6px;padding-bottom:9px;
-  border-bottom:1px solid var(--b1);margin-bottom:10px}
-.divl{height:1px;background:var(--b1);margin:10px 0}
-::-webkit-scrollbar{width:3px;height:3px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--mu);border-radius:2px}
-/* TC grid */
-.tc4{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.tc-lbl{font-size:8px;color:var(--mu2);letter-spacing:.09em;text-transform:uppercase;margin-bottom:3px}
-/* result card */
-.rcard{padding:8px 10px;border-radius:6px;margin-bottom:6px}
-.rcard-a{background:rgba(0,188,212,.07);border:1px solid rgba(0,188,212,.18)}
-.rcard-g{background:var(--grd);border:1px solid rgba(0,230,118,.2)}
-.rcard-r{background:var(--rdd);border:1px solid rgba(244,67,54,.2)}
-.rcard-y{background:rgba(255,193,7,.06);border:1px solid rgba(255,193,7,.18)}
+.tbl th {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--tx2); padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.tbl td {
+  padding: 9px 10px; font-size: 12px;
+  border-bottom: 1px solid rgba(255,255,255,.03);
+  vertical-align: middle;
+}
+.tbl tr:last-child td { border-bottom: none; }
+.tbl tr:hover td { background: rgba(56,189,248,.025); }
+
+/* color helpers */
+.cg { color: var(--gr); }
+.cr { color: var(--rd); }
+.ca { color: var(--ac); }
+.cy { color: var(--yw); }
+.cm { color: var(--tx2); }
+.cm3 { color: var(--tx3); }
+
+/* risk bar */
+.rbar { height: 4px; background: rgba(255,255,255,.07); border-radius: 2px; overflow: hidden; }
+.rfill { height: 100%; border-radius: 2px; transition: width .8s ease; }
+
+/* map */
+.map-land { fill: #071828; stroke: #0a2135; stroke-width: .3; }
+.map-focus { fill: #0d2540; stroke: #102d4a; stroke-width: .35; }
+.map-grid { fill: none; stroke: rgba(56,189,248,.04); stroke-width: .4; }
+.flow-line { fill: none; stroke-width: 1.2; stroke-dasharray: 7 6; animation: fd 3s linear infinite; }
+.flow-buy { stroke: var(--gr); opacity: .7; }
+.flow-sell { stroke: var(--rd); opacity: .7; }
+@keyframes fd { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -39; } }
+
+/* macro KPI cards */
+.kpi { padding: 12px; text-align: center; position: relative; overflow: hidden; }
+.kpi::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, var(--glo) 0%, transparent 60%); }
+.kpi-val { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 700; line-height: 1; }
+.kpi-lbl { font-family: 'JetBrains Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .12em; color: var(--tx3); margin-bottom: 5px; }
+.kpi-chg { font-family: 'JetBrains Mono', monospace; font-size: 11px; margin-top: 3px; }
+
+/* fear gauge */
+.fg-wrap { position: relative; width: 90px; height: 50px; margin: 0 auto; }
+.fg-arc { overflow: visible; }
+
+/* sector tabs */
+.stab {
+  padding: 5px 12px; border-radius: 5px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700;
+  letter-spacing: .06em; cursor: pointer; border: 1px solid var(--border);
+  color: var(--tx2); background: transparent; transition: all .16s; white-space: nowrap;
+}
+.stab:hover { border-color: var(--ac); color: var(--ac); }
+.stab.active { background: rgba(56,189,248,.14); border-color: var(--ac); color: var(--ac); }
+
 /* boot */
-#boot{position:fixed;inset:0;background:var(--bg);z-index:9999;
-  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;transition:opacity .6s}
+#boot {
+  position: fixed; inset: 0; background: var(--bg);
+  z-index: 9999; display: flex; align-items: center;
+  justify-content: center; flex-direction: column; gap: 18px;
+  transition: opacity .6s;
+}
+/* layout */
+.layout { display: grid; grid-template-columns: 330px 1fr 285px; gap: 11px; padding: 11px; position: relative; z-index: 1; }
+.col { display: flex; flex-direction: column; gap: 11px; }
+@media (max-width: 1280px) { .layout { grid-template-columns: 1fr; } }
+
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--tx3); border-radius: 2px; }
 </style>
 </head>
 <body>
 
-<!-- BOOT -->
+<!-- BOOT SCREEN -->
 <div id="boot">
-  <div style="font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:700;letter-spacing:.04em">
-    SENTINEL <span style="color:var(--ac)">APEX</span> <span style="color:var(--mu);font-size:11px;font-weight:400">V5.1</span>
+  <div class="mono" style="font-size:20px;font-weight:700;letter-spacing:.04em">
+    SENTINEL <span style="color:var(--ac)">APEX</span>
+    <span style="color:var(--tx3);font-size:11px;font-weight:400;margin-left:6px">V6.0</span>
   </div>
-  <div style="display:flex;align-items:center;gap:9px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mu2)">
-    <span class="sp"></span> INITIALIZING · KAOHSIUNG NODE ACTIVE
+  <div style="display:flex;align-items:center;gap:10px;font-size:11px;color:var(--tx2)" class="mono">
+    <span class="sp"></span>
+    <span id="boot-msg">INITIALIZING · KAOHSIUNG NODE</span>
   </div>
-  <div id="boot-msg" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mu);letter-spacing:.11em"></div>
+  <div style="font-size:10px;color:var(--tx3)" class="mono">CORSPROXY · TWSE · FRANKFURTER · ALTERNATIVE.ME</div>
 </div>
 
 <!-- HEADER -->
-<header style="padding:7px 11px;display:flex;align-items:center;justify-content:space-between;
-  border-bottom:1px solid var(--b1);background:rgba(0,7,14,.96);backdrop-filter:blur(20px);
-  position:sticky;top:0;z-index:200">
-  <div style="display:flex;align-items:center;gap:10px">
-    <div style="padding:6px;background:rgba(0,188,212,.07);border:1px solid rgba(0,188,212,.2);border-radius:6px">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ac)" stroke-width="2">
+<header style="padding:8px 14px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);background:rgba(6,13,26,.97);
+  backdrop-filter:blur(20px);position:sticky;top:0;z-index:500">
+  <div style="display:flex;align-items:center;gap:11px">
+    <div style="padding:7px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.2);border-radius:7px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ac)" stroke-width="2">
         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
       </svg>
     </div>
     <div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700">
-        SENTINEL <span style="color:var(--ac)">APEX</span><span style="color:var(--mu);font-size:9px;font-weight:400;margin-left:5px">V5.1</span>
+      <div class="mono" style="font-size:14px;font-weight:700">
+        SENTINEL <span style="color:var(--ac)">APEX</span>
+        <span style="color:var(--tx3);font-size:10px;font-weight:400;margin-left:5px">V6.0</span>
       </div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--mu);letter-spacing:.15em;text-transform:uppercase">
-        ARTHUR STRATEGIC COMMAND · GLOBAL FUND FLOW MONITOR
+      <div class="mono" style="font-size:10px;color:var(--tx3);letter-spacing:.12em">
+        ARTHUR STRATEGIC COMMAND · GLOBAL FUND FLOW
       </div>
     </div>
   </div>
-  <div style="display:flex;align-items:center;gap:14px">
+  <div style="display:flex;align-items:center;gap:16px">
     <div style="text-align:right">
-      <div style="font-size:7px;color:var(--mu);letter-spacing:.1em;font-family:'JetBrains Mono',monospace;text-transform:uppercase">台灣時間</div>
-      <div id="hclock" style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--ac)"></div>
+      <div class="mono" style="font-size:10px;color:var(--tx3);letter-spacing:.09em">台灣時間</div>
+      <div id="hclock" class="mono" style="font-size:15px;font-weight:700;color:var(--ac)">--:--:--</div>
     </div>
     <div style="text-align:right">
-      <div style="font-size:7px;color:var(--mu);letter-spacing:.1em;font-family:'JetBrains Mono',monospace;text-transform:uppercase">市場</div>
+      <div class="mono" style="font-size:10px;color:var(--tx3)">市場</div>
       <div id="hmkt"></div>
     </div>
-    <div id="hbadge"></div>
-    <button class="abtn abtn-sm" onclick="refreshAll()">⟳ 刷新</button>
+    <div id="hbadge" class="badge bd">INIT</div>
+    <button class="btn btn-sm" onclick="refreshAll()">⟳ 刷新</button>
+    <button class="btn btn-sm" onclick="toggleSettings()" title="FRED API Key">⚙ 設定</button>
   </div>
 </header>
 
-<!-- TICKER -->
-<div style="background:rgba(2,12,24,.8);border-bottom:1px solid var(--b1);padding:4px 0;overflow:hidden">
-  <div class="tkwrap">
-    <div class="tkinner mono" id="tkcontent" style="font-size:10px;color:var(--tx)"></div>
+<!-- SETTINGS PANEL -->
+<div id="settings-panel" style="display:none;background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 14px;">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span class="mono" style="font-size:11px;color:var(--tx2)">FRED API Key（選填，免費申請→ fred.stlouisfed.org）：</span>
+    <input id="fred-key" class="ain" type="text" placeholder="輸入 key 後可啟用宏觀指標即時數據" style="width:340px;font-size:11px;">
+    <button class="btn btn-sm" onclick="saveFredKey()">儲存</button>
+    <span id="fred-status" class="mono" style="font-size:10px;color:var(--tx3)"></span>
   </div>
 </div>
 
-<!-- MAIN -->
-<main class="mgrid" style="margin-top:11px">
+<!-- TICKER BAR -->
+<div class="tk-wrap">
+  <div class="tk-inner mono" id="tkcontent" style="font-size:11px;color:var(--tx)">
+    <span style="color:var(--tx3)">載入市場資料中...</span>
+  </div>
+</div>
 
-  <!-- ====== LEFT ====== -->
-  <div class="cstack">
+<!-- MACRO PANEL -->
+<section style="padding:11px 11px 0;position:relative;z-index:1">
+  <div style="margin-bottom:8px">
+    <span class="mono" style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx2)">
+      📊 全球流動性宏觀指標
+    </span>
+    <span id="macro-src" class="badge bd" style="margin-left:8px;font-size:9px">Yahoo Finance via Proxy</span>
+  </div>
+  <div id="macro-grid" style="display:grid;grid-template-columns:repeat(9,1fr);gap:8px;"></div>
+</section>
+
+<!-- MAIN 3-COLUMN -->
+<main class="layout" style="margin-top:11px">
+
+  <!-- ====== LEFT COL ====== -->
+  <div class="col">
 
     <!-- Stock Search -->
-    <div class="g1" style="padding:13px">
+    <div class="card" style="padding:14px">
       <div class="slbl">
-        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         股票即時查詢
-        <span id="bq" class="badge b-demo" style="margin-left:auto">DEMO</span>
+        <span id="bq" class="badge bd" style="margin-left:auto">TWSE</span>
       </div>
-      <div style="display:flex;gap:6px;margin-bottom:8px">
-        <input id="si" class="ain" type="text" placeholder="代號 ex: 2330 / 上市或上櫃" maxlength="7">
-        <button class="abtn" onclick="doSearch()">查詢</button>
+      <div style="display:flex;gap:7px;margin-bottom:9px">
+        <input id="si" class="ain" type="text" placeholder="代號 ex: 2330 / 009816 / 0050" maxlength="7" style="font-size:13px">
+        <button class="btn" onclick="doSearch()" style="padding:7px 14px">查詢</button>
       </div>
-      <div id="qtags" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px"></div>
-      <div id="qpanel"><div style="color:var(--mu2);font-size:11px;text-align:center;padding:20px 0">輸入股票代號查詢（支援上市/上櫃）</div></div>
+      <!-- quick tags -->
+      <div id="qtags" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:13px"></div>
+      <div id="qpanel">
+        <div style="color:var(--tx3);font-size:12px;text-align:center;padding:20px 0">
+          輸入股票代號查詢（上市 / 上櫃 / ETF）
+        </div>
+      </div>
     </div>
 
-    <!-- TC-03 Risk + Simulation -->
-    <div class="g1" style="padding:13px">
+    <!-- TC-03 Simulator -->
+    <div class="card" style="padding:14px">
       <div class="slbl">
-        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
         TC-03 交易模擬器
-        <span id="tc03badge" class="badge b-hold" style="margin-left:auto">MONITORING</span>
+        <span id="tc-badge" class="badge bd" style="margin-left:auto">MONITORING</span>
       </div>
 
-      <!-- 第一排：成本 & 張數 -->
-      <div class="tc4" style="margin-bottom:6px">
+      <!-- Row 1: 成本 / 持有張數 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
         <div>
-          <div class="tc-lbl">① 持倉成本（元）</div>
-          <input id="tcc" class="ain" type="number" placeholder="10.02" step="0.01" oninput="doTC()">
+          <div class="mono" style="font-size:10px;color:var(--tx2);margin-bottom:3px;text-transform:uppercase;letter-spacing:.07em">① 持倉成本（元/股）</div>
+          <input id="tcc" class="ain" type="number" placeholder="例: 10.02" step="0.01" oninput="doTC()">
         </div>
         <div>
-          <div class="tc-lbl">持有張數</div>
-          <input id="tcs" class="ain" type="number" placeholder="10" min="1" step="1" oninput="doTC()">
-        </div>
-      </div>
-      <!-- 第二排：報價 & 加碼張數 -->
-      <div class="tc4" style="margin-bottom:6px">
-        <div>
-          <div class="tc-lbl">② 當前報價（元）</div>
-          <input id="tcp" class="ain" type="number" placeholder="9.85" step="0.01" oninput="doTC()">
-        </div>
-        <div>
-          <div class="tc-lbl">計畫加碼（張）</div>
-          <input id="tca" class="ain" type="number" placeholder="10" min="1" step="1" oninput="doTC()">
+          <div class="mono" style="font-size:10px;color:var(--tx2);margin-bottom:3px;text-transform:uppercase;letter-spacing:.07em">持有張數</div>
+          <input id="tcs" class="ain" type="number" placeholder="例: 10" min="1" step="1" oninput="doTC()">
         </div>
       </div>
-      <!-- 第三排：追平點 & 目標價 -->
-      <div class="tc4" style="margin-bottom:10px">
+      <!-- Row 2: 報價 / 加碼張數 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
         <div>
-          <div class="tc-lbl">③ 追平支撐點（元）</div>
-          <input id="tct" class="ain danger" type="number" placeholder="9.70" step="0.1" oninput="doTC()">
+          <div class="mono" style="font-size:10px;color:var(--tx2);margin-bottom:3px;text-transform:uppercase;letter-spacing:.07em">② 當前報價（元）</div>
+          <input id="tcp" class="ain" type="number" placeholder="例: 9.85" step="0.01" oninput="doTC()">
         </div>
         <div>
-          <div class="tc-lbl">目標獲利價（元）</div>
-          <input id="tcg" class="ain warn" type="number" placeholder="12.00" step="0.1" oninput="doTC()">
+          <div class="mono" style="font-size:10px;color:var(--tx2);margin-bottom:3px;text-transform:uppercase;letter-spacing:.07em">計畫加碼（張）</div>
+          <input id="tca" class="ain" type="number" placeholder="例: 10" min="1" step="1" oninput="doTC()">
         </div>
       </div>
-
-      <div id="tcout"><div style="color:var(--mu2);font-size:10px;text-align:center;padding:8px 0">填入①②③後自動計算模擬結果</div></div>
+      <!-- Row 3: 追平點 / 目標價 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <div>
+          <div class="mono" style="font-size:10px;color:var(--rd);margin-bottom:3px;text-transform:uppercase;letter-spacing:.07em">③ 追平支撐點（元）</div>
+          <input id="tct" class="ain danger" type="number" placeholder="例: 9.70" step="0.1" oninput="doTC()">
+        </div>
+        <div>
+          <div class="mono" style="font-size:10px;color:var(--yw);margin-bottom:3px;text-transform:uppercase;letter-spacing:.07em">🎯 目標獲利價（元）</div>
+          <input id="tcg" class="ain warn" type="number" placeholder="例: 12.00" step="0.1" oninput="doTC()">
+        </div>
+      </div>
+      <div id="tc-out">
+        <div style="color:var(--tx3);font-size:12px;text-align:center;padding:8px 0">
+          填入 ①②③ 後自動計算模擬損益
+        </div>
+      </div>
     </div>
 
   </div>
 
-  <!-- ====== CENTER ====== -->
-  <div class="cstack">
+  <!-- ====== CENTER COL ====== -->
+  <div class="col">
 
     <!-- World Map -->
-    <div class="g1" style="padding:13px">
+    <div class="card" style="padding:14px">
       <div class="slbl">
-        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-        全球資金流動地圖
-        <div style="margin-left:auto;display:flex;gap:11px;font-size:9px;font-family:'JetBrains Mono',monospace;align-items:center">
-          <span style="display:flex;align-items:center;gap:4px;color:var(--gr)"><span style="width:14px;height:1px;background:var(--gr);display:inline-block"></span>流入台灣</span>
-          <span style="display:flex;align-items:center;gap:4px;color:var(--rd)"><span style="width:14px;height:1px;background:var(--rd);display:inline-block"></span>流出台灣</span>
-          <span id="flow-label" style="color:var(--mu2)">--</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        全球資金流向地圖
+        <div style="margin-left:auto;display:flex;gap:12px;align-items:center">
+          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--gr)">
+            <span style="width:16px;height:2px;background:var(--gr);display:inline-block;border-radius:1px"></span>流入台灣
+          </span>
+          <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--rd)">
+            <span style="width:16px;height:2px;background:var(--rd);display:inline-block;border-radius:1px"></span>流出台灣
+          </span>
+          <span id="flow-dir" style="font-size:11px;color:var(--tx3)" class="mono">--</span>
         </div>
       </div>
-      <div id="mapwrap" style="height:275px;border-radius:7px;overflow:hidden;background:var(--map-ocean)">
-        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--mu2);gap:7px">
-          <span class="sp"></span><span style="font-size:11px">地圖資料載入中...</span>
+      <div id="mapwrap" style="height:270px;border-radius:7px;overflow:hidden;background:#010b16">
+        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--tx3);gap:8px">
+          <span class="sp"></span><span>地圖載入中...</span>
         </div>
       </div>
-      <!-- Map stats -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px">
-        <div class="g2" style="padding:8px;text-align:center">
-          <div style="font-size:7px;color:var(--mu2);margin-bottom:2px;text-transform:uppercase;letter-spacing:.08em">外資</div>
-          <div id="msf" class="mono" style="font-size:14px;font-weight:700">--</div>
-          <div id="msf-sub" style="font-size:8px;color:var(--mu2)"></div>
+      <!-- 4 法人合計 -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:9px">
+        <div class="card2" style="padding:10px;text-align:center">
+          <div class="mono" style="font-size:9px;color:var(--tx3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em">外資 (T-1)</div>
+          <div id="msf" class="mono" style="font-size:16px;font-weight:700">--</div>
         </div>
-        <div class="g2" style="padding:8px;text-align:center">
-          <div style="font-size:7px;color:var(--mu2);margin-bottom:2px;text-transform:uppercase;letter-spacing:.08em">投信</div>
-          <div id="mst" class="mono" style="font-size:14px;font-weight:700">--</div>
+        <div class="card2" style="padding:10px;text-align:center">
+          <div class="mono" style="font-size:9px;color:var(--tx3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em">投信 (T-1)</div>
+          <div id="mst" class="mono" style="font-size:16px;font-weight:700">--</div>
         </div>
-        <div class="g2" style="padding:8px;text-align:center">
-          <div style="font-size:7px;color:var(--mu2);margin-bottom:2px;text-transform:uppercase;letter-spacing:.08em">自營商</div>
-          <div id="msd" class="mono" style="font-size:14px;font-weight:700">--</div>
+        <div class="card2" style="padding:10px;text-align:center">
+          <div class="mono" style="font-size:9px;color:var(--tx3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em">自營商 (T-1)</div>
+          <div id="msd" class="mono" style="font-size:16px;font-weight:700">--</div>
         </div>
-        <div class="g2" style="padding:8px;text-align:center">
-          <div style="font-size:7px;color:var(--mu2);margin-bottom:2px;text-transform:uppercase;letter-spacing:.08em">三大合計</div>
-          <div id="mss" class="mono" style="font-size:14px;font-weight:700;color:var(--ac)">--</div>
+        <div class="card2" style="padding:10px;text-align:center">
+          <div class="mono" style="font-size:9px;color:var(--ac);margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em">三大合計</div>
+          <div id="mss" class="mono" style="font-size:16px;font-weight:700;color:var(--ac)">--</div>
         </div>
       </div>
     </div>
 
-    <!-- Indices -->
+    <!-- Global Indices -->
     <div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mu2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">主要市場指數</div>
-      <div id="idxgrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px"></div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mu2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">商品 &amp; 匯率</div>
-      <div id="cmdgrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px"></div>
+      <div class="mono" style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx2);margin-bottom:7px">主要市場指數</div>
+      <div id="idx-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:7px"></div>
+      <div class="mono" style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx2);margin-bottom:7px">商品 &amp; 匯率</div>
+      <div id="cmd-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px"></div>
     </div>
 
   </div>
 
-  <!-- ====== RIGHT ====== -->
-  <div class="cstack">
+  <!-- ====== RIGHT COL ====== -->
+  <div class="col">
 
-    <!-- T86 -->
-    <div class="g1" style="padding:13px">
+    <!-- T86 三大法人 -->
+    <div class="card" style="padding:14px">
       <div class="slbl">
-        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
         三大法人籌碼
-        <span id="bt86" class="badge b-demo" style="margin-left:auto">T-1</span>
+        <span id="bt86" class="badge bd" style="margin-left:auto">T-1</span>
       </div>
-      <div id="t86date" style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mu2);margin-bottom:8px">資料日期：--</div>
+      <div id="t86-date" class="mono" style="font-size:11px;color:var(--ac);margin-bottom:9px">資料日期：--</div>
       <div style="overflow-y:auto;max-height:200px">
-        <table class="at" style="width:100%;border-collapse:collapse">
+        <table class="tbl" style="width:100%;border-collapse:collapse">
           <thead><tr>
             <th style="text-align:left">代號</th>
             <th style="text-align:right">外資</th>
             <th style="text-align:right">投信</th>
             <th style="text-align:right">合計</th>
           </tr></thead>
-          <tbody id="t86body"><tr><td colspan="4" style="text-align:center;padding:16px;color:var(--mu2)"><span class="sp"></span></td></tr></tbody>
+          <tbody id="t86-body">
+            <tr><td colspan="4" style="text-align:center;padding:18px;color:var(--tx3)"><span class="sp"></span></td></tr>
+          </tbody>
         </table>
       </div>
     </div>
 
     <!-- FX -->
-    <div class="g1" style="padding:13px">
+    <div class="card" style="padding:14px">
       <div class="slbl">
-        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
         主要貨幣匯率
-        <span id="bfx" class="badge b-demo" style="margin-left:auto">--</span>
+        <span id="bfx" class="badge bd" style="margin-left:auto">LIVE</span>
       </div>
-      <div id="fxpanel"></div>
+      <div id="fx-panel"></div>
     </div>
 
-    <!-- Sentiment -->
-    <div class="g1" style="padding:13px">
+    <!-- Market Sentiment -->
+    <div class="card" style="padding:14px">
       <div class="slbl">
-        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
         市場情緒儀表
       </div>
-      <div>
-        <div style="margin-bottom:8px">
-          <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px">
-            <span style="color:var(--mu2)">VIX 恐慌指數</span>
-            <span id="vval" class="mono cy">--</span>
+      <!-- Sentiment bars -->
+      <div style="space-y:8px">
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+            <span style="color:var(--tx2)">VIX 恐慌指數</span>
+            <span id="vix-val" class="mono cy">--</span>
           </div>
-          <div class="rbg"><div id="vfill" class="rfill" style="width:0%;background:var(--yw)"></div></div>
+          <div class="rbar"><div id="vix-fill" class="rfill" style="width:0%;background:var(--yw)"></div></div>
         </div>
-        <div style="margin-bottom:8px">
-          <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px">
-            <span style="color:var(--mu2)">外資方向強度</span>
-            <span id="fsval" class="mono ca">--</span>
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+            <span style="color:var(--tx2)">外資方向強度</span>
+            <span id="fs-val" class="mono ca">--</span>
           </div>
-          <div class="rbg"><div id="fsfill" class="rfill" style="width:0%"></div></div>
+          <div class="rbar"><div id="fs-fill" class="rfill" style="width:0%"></div></div>
         </div>
-        <div style="margin-bottom:8px">
-          <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px">
-            <span style="color:var(--mu2)">三大法人合力</span>
-            <span id="tsval" class="mono cg">--</span>
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+            <span style="color:var(--tx2)">三大法人合力</span>
+            <span id="ts-val" class="mono cg">--</span>
           </div>
-          <div class="rbg"><div id="tsfill" class="rfill" style="width:0%"></div></div>
+          <div class="rbar"><div id="ts-fill" class="rfill" style="width:0%"></div></div>
         </div>
-        <div class="divl"></div>
-        <div style="text-align:center">
-          <div style="font-size:8px;color:var(--mu2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px">綜合判定</div>
-          <div id="verdict" class="mono" style="font-size:18px;font-weight:700;color:var(--ac)">--</div>
-          <div id="vsub" style="font-size:9px;color:var(--mu2);margin-top:2px"></div>
-        </div>
+      </div>
+      <div class="dv"></div>
+      <div style="text-align:center">
+        <div class="mono" style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">綜合市場研判</div>
+        <div id="verdict" class="mono" style="font-size:20px;font-weight:700;color:var(--ac)">--</div>
+        <div id="v-sub" style="font-size:12px;color:var(--tx2);margin-top:3px">--</div>
       </div>
     </div>
 
   </div>
 </main>
 
-<!-- WATCHLIST -->
-<section style="padding:0 11px 20px;position:relative;z-index:1">
-  <div class="g1" style="padding:13px">
+<!-- SECTOR FILTER + WATCHLIST -->
+<section style="padding:0 11px 22px;position:relative;z-index:1">
+  <div class="card" style="padding:14px">
     <div class="slbl">
-      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       自選股監控清單
+      <!-- Sector filter -->
+      <div id="sector-tabs" style="display:flex;gap:5px;flex-wrap:wrap;margin-left:8px"></div>
       <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
-        <input id="wladd" class="ain" type="text" placeholder="新增代號" maxlength="7" style="width:82px;font-size:10px;padding:4px 8px">
-        <button class="abtn abtn-sm" onclick="addWL()">+新增</button>
-        <button class="abtn abtn-sm" onclick="refreshAll()">⟳ 重整</button>
+        <input id="wl-add" class="ain" type="text" placeholder="新增代號" maxlength="7" style="width:90px;font-size:12px;padding:5px 9px">
+        <button class="btn btn-sm" onclick="addWL()">+新增</button>
+        <button class="btn btn-sm" onclick="refreshAll()">⟳ 重整</button>
       </div>
     </div>
     <div style="overflow-x:auto">
-      <table class="at" style="width:100%;border-collapse:collapse;min-width:700px">
+      <table class="tbl" style="width:100%;border-collapse:collapse;min-width:780px">
         <thead><tr>
-          <th style="text-align:left">代號</th>
+          <th style="text-align:left;width:65px">代號</th>
           <th style="text-align:left">名稱</th>
           <th style="text-align:right">最新價</th>
           <th style="text-align:right">漲跌%</th>
           <th style="text-align:right">外資(張)</th>
           <th style="text-align:right">投信(張)</th>
-          <th style="text-align:right">成交量</th>
+          <th style="text-align:right">成交量(張)</th>
           <th style="text-align:center">籌碼</th>
           <th style="text-align:center">風險</th>
-          <th style="text-align:center">操作</th>
+          <th style="text-align:center;width:110px">操作</th>
         </tr></thead>
-        <tbody id="wlbody"><tr><td colspan="10" style="text-align:center;padding:26px;color:var(--mu2)"><span class="sp"></span> 載入中...</td></tr></tbody>
+        <tbody id="wl-body">
+          <tr><td colspan="10" style="text-align:center;padding:30px;color:var(--tx3)">
+            <span class="sp"></span> 載入中...
+          </td></tr>
+        </tbody>
       </table>
     </div>
+    <div id="wl-sector-note" class="mono" style="font-size:10px;color:var(--tx3);margin-top:8px;text-align:right"></div>
   </div>
 </section>
 
-<!-- NOTE -->
-<div style="padding:0 11px 14px;position:relative;z-index:1">
-  <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mu);text-align:center;line-height:1.9">
-    📡 資料來源：TWSE OpenAPI（三大法人 T86，收盤後約 16:00 更新）· Frankfurter API（匯率即時）· Yahoo Finance（股價指數，可能受 CORS 限制）<br>
-    ⚠️ 股價查詢：Yahoo Finance CORS 被擋時自動降為 TWSE 收盤價（T-1）· 本工具僅供輔助決策，不構成投資建議，實際交易請自行判斷
+<!-- FOOTER NOTE -->
+<div style="padding:0 11px 16px;position:relative;z-index:1">
+  <div class="mono" style="font-size:10px;color:var(--tx3);text-align:center;line-height:2">
+    📡 <strong style="color:var(--tx2)">資料來源</strong>：
+    TWSE OpenAPI（三大法人 T86，收盤後約 16:00 更新）·
+    Yahoo Finance via corsproxy.io（即時報價，含 .TW / .TWO）·
+    Frankfurter API（即時匯率）·
+    Alternative.me（Fear &amp; Greed Index）·
+    D3 world-atlas（地圖）<br>
+    ⚠️ <strong style="color:var(--tx2)">使用說明</strong>：
+    股價採雙源查詢（Yahoo → TWSE OpenAPI），上市用 .TW，上櫃用 .TWO。
+    法人資料為前一交易日收盤後統計（T-1）。
+    本工具僅供輔助決策，不構成投資建議，請自行判斷。
   </div>
 </div>
 
 <script>
-/*============================================================
-  SENTINEL APEX V5.1
-  修正：地圖大黃橢圓 / TC-03 張數×金額模擬 / T86 資料日期
+/*=============================================================
+  SENTINEL APEX V6.0
   Arthur Strategic Command · Kaohsiung Node
-============================================================*/
 
-// ── STATE ──
-const S = {
-  wl:['2330','2303','2454','2317','2881','3008'],
-  stocks:{}, t86:[], t86date:'', fx:{},
-  vix:21.45, gq:[], flowDir:'buy',
-  src:{q:'demo',t86:'demo',fx:'demo',g:'demo'},
-  mapSvg:null, mapProj:null, mapW:0, mapH:0
+  修正項目：
+  ① CORS 問題：台股用 TWSE OpenAPI STOCK_DAY；全球指數用 corsproxy.io+Yahoo
+  ② 009816等正確Demo fallback（非100）
+  ③ 宏觀面板：DXY/VIX/MOVE/10Y/Fear&Greed/Gold/Oil/TWD
+  ④ 產業篩選 Tab
+  ⑤ 字體 12px 起跳，對比度大幅提升
+  ⑥ TC-03 完整張數×金額模擬
+=============================================================*/
+
+// ── CONFIG ──────────────────────────────────────────────────
+const PROXY = 'https://corsproxy.io/?';
+const YQ7   = 'https://query1.finance.yahoo.com/v7/finance/quote';
+const YQ72  = 'https://query2.finance.yahoo.com/v7/finance/quote';
+
+// Sector classification
+const SECTORS = {
+  '全部':    null,
+  '半導體':  ['2330','2303','2454','3711','2337','6770','3034','2379','3576'],
+  'AI/伺服': ['2382','3231','6669','3293','4938','6861','5347'],
+  '金融':    ['2881','2882','2883','2884','2885','2886','2887','2888','2890','2891','2892'],
+  '消費電子':['2317','2354','2357','3008','2376','2498'],
+  'ETF':     ['0050','0056','00878','006208','00919','009816','00929','00713'],
+  '電信':    ['2412','4904','3045'],
+  '傳產/材料':['1301','1303','1326','2002','1402'],
 };
 
-// ── HELPERS ──
-const TWT = () => new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
-function isOpen(){const t=TWT(),d=t.getDay(),tot=t.getHours()*60+t.getMinutes();return d>=1&&d<=5&&tot>=540&&tot<=810;}
-function fmt(n,d=2){if(n===null||n===undefined||isNaN(n))return'--';return Number(n).toFixed(d).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+// Demo data (所有代號都必須有正確的示範價格)
+const DEMO_DB = {
+  '2330': {n:'台積電',      p:2030, pc:2005, v:22450, sector:'半導體'},
+  '2303': {n:'聯電',        p:73.0, pc:71.5, v:98320, sector:'半導體'},
+  '2454': {n:'聯發科',      p:1245, pc:1260, v:15670, sector:'半導體'},
+  '2317': {n:'鴻海',        p:198.5,pc:196,  v:156230,sector:'消費電子'},
+  '2881': {n:'富邦金',      p:96.5, pc:95,   v:45670, sector:'金融'},
+  '3008': {n:'大立光',      p:2180, pc:2200, v:3240,  sector:'消費電子'},
+  '2382': {n:'廣達',        p:225,  pc:220,  v:45000, sector:'AI/伺服'},
+  '2357': {n:'華碩',        p:530,  pc:525,  v:8600,  sector:'消費電子'},
+  '3711': {n:'日月光投控',  p:165,  pc:162,  v:78000, sector:'半導體'},
+  '2308': {n:'台達電',      p:380,  pc:375,  v:18000, sector:'傳產/材料'},
+  '2412': {n:'中華電',      p:123,  pc:122,  v:12000, sector:'電信'},
+  '0050': {n:'元大台灣50',  p:158,  pc:156,  v:15000, sector:'ETF'},
+  '0056': {n:'元大高股息',  p:35.8, pc:35.5, v:98000, sector:'ETF'},
+  '00878':{n:'國泰永續高息',p:19.5, pc:19.4, v:85000, sector:'ETF'},
+  '006208':{n:'富邦台50',   p:102.5,pc:101,  v:9800,  sector:'ETF'},
+  '009816':{n:'凱基台灣TOP50',p:11.95,pc:12.0,v:5600, sector:'ETF'}, // ★ 正確示範值
+  '00919':{n:'群益台灣精選高息',p:20.3,pc:20.2,v:45000,sector:'ETF'},
+  '2884': {n:'玉山金',      p:33.5, pc:33.2, v:55000, sector:'金融'},
+  '1301': {n:'台塑',        p:73,   pc:72,   v:22000, sector:'傳產/材料'},
+};
+
+// Global demo (確保 fallback 時顯示合理值)
+const DEMO_GLOBAL = [
+  {symbol:'DX-Y.NYB', shortName:'DXY 美元',    regularMarketPrice:104.52, regularMarketChangePercent: 0.31},
+  {symbol:'^VIX',     shortName:'VIX 恐慌',     regularMarketPrice:21.45,  regularMarketChangePercent: 8.32},
+  {symbol:'^MOVE',    shortName:'MOVE 債波',     regularMarketPrice:134.5,  regularMarketChangePercent:-2.1},
+  {symbol:'^TNX',     shortName:'10Y 美債%',     regularMarketPrice:4.58,   regularMarketChangePercent: 1.2},
+  {symbol:'GC=F',     shortName:'黃金 $/oz',     regularMarketPrice:2356,   regularMarketChangePercent: 0.82},
+  {symbol:'CL=F',     shortName:'WTI $/bbl',     regularMarketPrice:84.72,  regularMarketChangePercent:-1.23},
+  {symbol:'USDTWD=X', shortName:'USD/TWD',       regularMarketPrice:31.85,  regularMarketChangePercent:-0.12},
+  {symbol:'^TWII',    shortName:'台灣加權',       regularMarketPrice:21395,  regularMarketChangePercent: 2.28},
+  {symbol:'^GSPC',    shortName:'S&P 500',        regularMarketPrice:5218,   regularMarketChangePercent:-1.46},
+  {symbol:'^IXIC',    shortName:'NASDAQ',          regularMarketPrice:16152,  regularMarketChangePercent:-2.05},
+  {symbol:'^N225',    shortName:'日經225',         regularMarketPrice:34028,  regularMarketChangePercent:-1.20},
+  {symbol:'^HSI',     shortName:'恆生',            regularMarketPrice:21395,  regularMarketChangePercent: 2.28},
+  {symbol:'^DJI',     shortName:'道瓊',            regularMarketPrice:38769,  regularMarketChangePercent:-0.73},
+  {symbol:'^FTSE',    shortName:'富時100',         regularMarketPrice:8024,   regularMarketChangePercent:-0.45},
+];
+
+// ── STATE ────────────────────────────────────────────────────
+const S = {
+  wl: ['2330','2303','2454','2317','2881','3008','009816','0050'],
+  sector: '全部',
+  stocks: {},
+  t86: [],
+  t86date: '',
+  fx: {},
+  vix: 21.45,
+  gq: [],
+  fg: null,  // fear & greed
+  flowDir: 'buy',
+  src: {q:'demo', t86:'demo', fx:'demo', g:'demo', fg:'demo'},
+  mapSvg: null,
+  mapProj: null,
+  fredKey: localStorage.getItem('fredKey') || '',
+};
+
+// ── HELPERS ──────────────────────────────────────────────────
+const TWT = () => new Date(new Date().toLocaleString('en-US', {timeZone:'Asia/Taipei'}));
+function isOpen(){
+  const t=TWT(), d=t.getDay(), tot=t.getHours()*60+t.getMinutes();
+  return d>=1 && d<=5 && tot>=540 && tot<=810;
+}
+function fmt(n,d=2){
+  if(n===null||n===undefined||isNaN(n))return'--';
+  return Number(n).toFixed(d).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+}
 function fmtM(n){
   if(n===null||n===undefined||isNaN(n))return'--';
   const a=Math.abs(n);
-  if(a>=1e8)return(n/1e8).toFixed(2)+'億';
-  if(a>=1e4)return(n/1e4).toFixed(1)+'萬';
-  if(a>=1e3)return Math.round(n/1000)+'千';
-  return String(Math.round(n));
+  const s=n>=0?'+':'-';
+  if(a>=1e8)return s+(a/1e8).toFixed(2)+'億';
+  if(a>=1e4)return s+(a/1e4).toFixed(1)+'萬';
+  if(a>=1e3)return s+Math.round(a/1000)+'千';
+  return (n>=0?'+':'')+Math.round(n).toLocaleString();
 }
-function ni(s){return parseInt((s||'0').replace(/,/g,''))||0;}
-function nf(s){return parseFloat((s||'0').replace(/,/g,''))||0;}
-function cc(n){return n>0?'cg':n<0?'cr':'ca';}
+function ni(s){return parseInt((s||'0').replace(/[,，]/g,''))||0;}
+function nf(s){return parseFloat((s||'0').replace(/[,，]/g,''))||0;}
 
-// ── CLOCK ──
+// ── CLOCK ────────────────────────────────────────────────────
 function clock(){
-  const t=TWT(),p=n=>String(n).padStart(2,'0');
+  const t=TWT(), p=n=>String(n).padStart(2,'0');
   document.getElementById('hclock').textContent=`${p(t.getHours())}:${p(t.getMinutes())}:${p(t.getSeconds())}`;
-  document.getElementById('hmkt').innerHTML=isOpen()
-    ?`<span style="color:var(--gr);font-family:'JetBrains Mono',monospace;font-size:10px;display:flex;align-items:center;gap:3px"><span class="ldot"></span>OPEN</span>`
-    :`<span style="color:var(--mu2);font-family:'JetBrains Mono',monospace;font-size:10px">${TWT().getHours()>=14?'CLOSED':'PRE'}</span>`;
+  const open=isOpen();
+  document.getElementById('hmkt').innerHTML=open
+    ?`<span class="mono" style="color:var(--gr);font-size:12px;display:flex;align-items:center;gap:4px"><span class="ldot"></span>盤中</span>`
+    :`<span class="mono" style="color:var(--tx3);font-size:12px">${TWT().getHours()>=14?'收盤':'開盤前'}</span>`;
 }
-setInterval(clock,1000); clock();
+setInterval(clock, 1000); clock();
 
-// ── TICKER ──
+// ── TICKER ───────────────────────────────────────────────────
 function buildTicker(items){
-  if(!items||!items.length)return;
+  if(!items?.length) return;
   const d=[...items,...items];
-  document.getElementById('tkcontent').innerHTML=d.map(it=>{
-    const col=it.c>0?'var(--gr)':it.c<0?'var(--rd)':'var(--mu2)';
+  document.getElementById('tkcontent').innerHTML = d.map(it=>{
+    const col=it.c>0?'var(--gr)':it.c<0?'var(--rd)':'var(--tx2)';
     const sig=it.c>0?'▲':it.c<0?'▼':'─';
     const p=it.p;
-    return`<span style="display:inline-flex;align-items:center;gap:5px">
-      <span style="color:var(--mu2)">${it.s}</span>
+    return`<span style="display:inline-flex;align-items:center;gap:6px">
+      <span style="color:var(--tx2)">${it.s}</span>
       <span style="font-weight:700;color:${col}">${p>=1000?Math.round(p).toLocaleString():p.toFixed(2)}</span>
-      <span style="color:${col};font-size:8px">${sig}${Math.abs(it.c).toFixed(2)}%</span>
+      <span style="color:${col};font-size:9px">${sig}${Math.abs(it.c).toFixed(2)}%</span>
     </span>`;
   }).join('');
 }
 
-// ── QUICK TAGS ──
-function buildQuickTags(){
-  document.getElementById('qtags').innerHTML=
-    ['2330','2303','2454','2317','2881','3008','2382','006208'].map(c=>
-      `<button onclick="doSearch('${c}')" style="background:rgba(0,0,0,.35);border:1px solid var(--b1);
-        border-radius:3px;color:var(--mu2);cursor:pointer;font-family:'JetBrains Mono',monospace;
-        font-size:9px;padding:2px 7px;transition:.16s"
-        onmouseover="this.style.borderColor='var(--ac)';this.style.color='var(--ac)'"
-        onmouseout="this.style.borderColor='var(--b1)';this.style.color='var(--mu2)'">${c}</button>`
-    ).join('');
-}
+// ── API LAYER ────────────────────────────────────────────────
 
-// ── API ──
-async function apif(url){
-  const r=await fetch(url,{headers:{'Accept':'application/json'},cache:'no-cache'});
-  if(!r.ok)throw new Error(`HTTP ${r.status}`);
-  return r.json();
-}
-
-// Yahoo Finance — try both query1 & query2
+// ① Yahoo Finance via corsproxy
 async function yahooQ(syms){
-  for(const base of['https://query1.finance.yahoo.com','https://query2.finance.yahoo.com']){
-    try{
-      const d=await apif(`${base}/v7/finance/quote?symbols=${syms.join(',')}&lang=zh-TW&region=TW`);
-      const res=d?.quoteResponse?.result;
-      if(res&&res.length>0){S.src.g='live';return res;}
-    }catch(e){console.warn('[Yahoo]',e.message);}
+  const url = `${PROXY}${encodeURIComponent(`${YQ7}?symbols=${syms.join(',')}&lang=zh-TW&region=TW`)}`;
+  try{
+    const r = await fetch(url, {cache:'no-cache', headers:{Accept:'application/json'}});
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+    const res = d?.quoteResponse?.result;
+    if(res?.length > 0){ S.src.g='live'; return res; }
+  }catch(e){ console.warn('[Yahoo proxy]', e.message); }
+  // fallback: query2
+  try{
+    const url2 = `${PROXY}${encodeURIComponent(`${YQ72}?symbols=${syms.join(',')}&lang=zh-TW&region=TW`)}`;
+    const r2 = await fetch(url2, {cache:'no-cache'});
+    const d2 = await r2.json();
+    const res2 = d2?.quoteResponse?.result;
+    if(res2?.length > 0){ S.src.g='live'; return res2; }
+  }catch(e2){ console.warn('[Yahoo q2]', e2.message); }
+  return null;
+}
+
+// ② TWSE STOCK_DAY — 個股日資料（CORS OK，收盤後更新）
+async function twseDay(code){
+  try{
+    const r = await fetch(`https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY?stockNo=${code}`, {
+      cache:'no-cache', headers:{Accept:'application/json'}
+    });
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+    if(!d?.length) return null;
+    const last = d[d.length-1];
+    const cl  = nf(last.ClosingPrice);
+    if(!cl || cl <= 0) return null;
+    const chgRaw = (last.Change||'').trim();
+    const chgSign= chgRaw.startsWith('-')?-1:1;
+    const chgAmt = nf(chgRaw.replace(/[+\-X＋]/g,'')) * chgSign;
+    const prev   = cl - chgAmt;
+    return {
+      symbol: `${code}.TW`, shortName: last.StockName||code, longName: last.StockName||code,
+      regularMarketPrice: cl,
+      regularMarketPreviousClose: prev,
+      regularMarketChange: chgAmt,
+      regularMarketChangePercent: prev>0 ? +((chgAmt/prev)*100).toFixed(2) : 0,
+      regularMarketHigh: nf(last.HighestPrice),
+      regularMarketLow: nf(last.LowestPrice),
+      regularMarketVolume: Math.round(ni(last.TradeVolume)/1000),
+      regularMarketOpen: nf(last.OpeningPrice),
+      _src: 'twse', _date: last.Date||''
+    };
+  }catch(e){ console.warn('[TWSE DAY]', e.message); return null; }
+}
+
+// 台股查詢：Yahoo via proxy → TWSE OpenAPI → Demo
+async function fetchTW(code){
+  // 1. Yahoo via proxy (.TW then .TWO)
+  for(const sfx of ['.TW','.TWO']){
+    const res = await yahooQ([`${code}${sfx}`]);
+    if(res?.[0]?.regularMarketPrice > 0){
+      S.src.q = 'live';
+      const r = res[0];
+      r.regularMarketVolume = Math.round((r.regularMarketVolume||0)/1000);
+      return r;
+    }
   }
-  return null;
-}
-
-// TWSE T86 — 最新前一日收盤三大法人
-async function twseT86(){
-  try{
-    const d=await apif('https://openapi.twse.com.tw/v1/fund/T86');
-    if(d&&d.length>0){
-      S.src.t86='live';
-      // 取出資料日期（第一筆的 Date 欄位）
-      if(d[0].Date){
-        const raw=d[0].Date; // e.g. "20241017"
-        S.t86date=raw.length===8?`${raw.slice(0,4)}/${raw.slice(4,6)}/${raw.slice(6,8)}`
-          :(raw.replace('/','-').replace('/','-')); // might be ROC format
-      }
-      return d;
-    }
-  }catch(e){console.warn('[T86]',e.message);}
-  return null;
-}
-
-// TWSE STOCK_DAY — 個股最新日資料 (上市)
-async function twseStk(code){
-  try{
-    const d=await apif(`https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY?stockNo=${code}`);
-    if(d&&d.length>0){
-      const last=d[d.length-1];
-      const cl=nf(last.ClosingPrice||last.ClosePrice||last.closingPrice||'0');
-      const op=nf(last.OpeningPrice||last.openingPrice||'0');
-      const hi=nf(last.HighestPrice||last.highestPrice||'0');
-      const lo=nf(last.LowestPrice||last.lowestPrice||'0');
-      const vol=Math.round(ni(last.TradeVolume||last.tradeVolume||'0')/1000); // 張
-      const name=last.StockName||last.stockName||code;
-      const chgRaw=last.Change||last.change||'0';
-      const chgAmt=nf(chgRaw.replace(/[+＋]/g,''));
-      return{symbol:`${code}.TW`,shortName:name,longName:name,
-        regularMarketPrice:cl,regularMarketPreviousClose:cl-chgAmt,
-        regularMarketChange:chgAmt,
-        regularMarketChangePercent:(cl-chgAmt)>0?+((chgAmt/(cl-chgAmt))*100).toFixed(2):0,
-        regularMarketHigh:hi,regularMarketLow:lo,
-        regularMarketVolume:vol,_src:'twse'};
-    }
-  }catch(e){console.warn('[TWSE-TSE]',e.message);}
-  // 嘗試上櫃 OTC
-  try{
-    const d=await apif(`https://openapi.twse.com.tw/v1/exchangeReport/TPEX_STOCK_DAY?stockNo=${code}`);
-    if(d&&d.length>0){
-      const last=d[d.length-1];
-      const cl=nf(last.ClosingPrice||last.ClosePrice||'0');
-      const op=nf(last.OpeningPrice||'0');
-      const chgRaw=last.Change||'0';
-      const chgAmt=nf(chgRaw.replace(/[+＋]/g,''));
-      return{symbol:`${code}.TWO`,shortName:last.StockName||code,longName:last.StockName||code,
-        regularMarketPrice:cl,regularMarketPreviousClose:cl-chgAmt,
-        regularMarketChange:chgAmt,
-        regularMarketChangePercent:(cl-chgAmt)>0?+((chgAmt/(cl-chgAmt))*100).toFixed(2):0,
-        regularMarketVolume:Math.round(ni(last.TradeVolume||'0')/1000),_src:'otc'};
-    }
-  }catch(e){console.warn('[TWSE-OTC]',e.message);}
-  return null;
-}
-
-// 查單一股票：Yahoo優先，降為TWSE，最後demo
-async function fetchStk(code){
-  // Yahoo: try .TW then .TWO
-  for(const suffix of['.TW','.TWO']){
-    try{
-      const d=await apif(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${code}${suffix}&lang=zh-TW&region=TW`);
-      const r=d?.quoteResponse?.result?.[0];
-      if(r?.regularMarketPrice>0){
-        S.src.q='live';
-        r.regularMarketVolume=Math.round((r.regularMarketVolume||0)/1000); // 轉張
-        return r;
-      }
-    }catch(e){}
-  }
-  // TWSE OpenAPI fallback
-  const ts=await twseStk(code);
-  if(ts&&ts.regularMarketPrice>0){S.src.q='delayed';return ts;}
-  // Demo
+  // 2. TWSE OpenAPI
+  const tw = await twseDay(code);
+  if(tw){ S.src.q = 'delayed'; return tw; }
+  // 3. Demo fallback (使用正確的示範資料)
+  S.src.q = 'demo';
   return demoStk(code);
 }
 
-// Frankfurter FX
-async function fetchFX(){
+// ③ TWSE T86 三大法人
+async function twseT86(){
   try{
-    const d=await apif('https://api.frankfurter.app/latest?base=USD&symbols=TWD,JPY,EUR,CNY,GBP,SGD');
-    if(d?.rates){S.src.fx='live';S.fx=d.rates;return d.rates;}
-  }catch(e){console.warn('[FX]',e.message);}
-  const demo={TWD:31.85,JPY:154.2,EUR:0.922,CNY:7.24,GBP:0.782,SGD:1.342};
-  S.fx=demo;return demo;
+    const r = await fetch('https://openapi.twse.com.tw/v1/fund/T86', {
+      cache:'no-cache', headers:{Accept:'application/json'}
+    });
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+    if(!d?.length) return null;
+    S.src.t86 = 'live';
+    // 取資料日期
+    const raw = d[0]?.Date||'';
+    if(raw.length >= 8){
+      S.t86date = `${raw.slice(0,4)}/${raw.slice(4,6)}/${raw.slice(6,8)}`;
+    }
+    return d;
+  }catch(e){ console.warn('[T86]', e.message); return null; }
 }
 
-// ── DEMO DATA ──
+// ④ Frankfurter FX
+async function fetchFX(){
+  try{
+    const r = await fetch('https://api.frankfurter.app/latest?base=USD&symbols=TWD,JPY,EUR,CNY,GBP,SGD', {cache:'no-cache'});
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+    if(d?.rates){ S.src.fx='live'; S.fx=d.rates; return d.rates; }
+  }catch(e){ console.warn('[FX]', e.message); }
+  const demo = {TWD:31.85, JPY:154.2, EUR:0.922, CNY:7.24, GBP:0.782, SGD:1.342};
+  S.fx = demo; return demo;
+}
+
+// ⑤ Alternative.me Fear & Greed
+async function fetchFG(){
+  try{
+    const r = await fetch('https://api.alternative.me/fng/?limit=1', {cache:'no-cache'});
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+    if(d?.data?.[0]){ S.src.fg='live'; S.fg=d.data[0]; return d.data[0]; }
+  }catch(e){ console.warn('[F&G]', e.message); }
+  return {value:'25', value_classification:'Extreme Fear'};
+}
+
+// Demo fallback stock
+function demoStk(code){
+  const d = DEMO_DB[code] || {n:code, p:100, pc:99, v:10000}; // <-- 只有 DEMO_DB 外才給100
+  const chg = +((d.p-d.pc)/d.pc*100).toFixed(2);
+  return {
+    symbol: `${code}.TW`, shortName: d.n, longName: d.n,
+    regularMarketPrice: d.p, regularMarketPreviousClose: d.pc,
+    regularMarketChange: +(d.p-d.pc).toFixed(2),
+    regularMarketChangePercent: chg,
+    regularMarketVolume: d.v,
+    _demo: true, _sector: d.sector||''
+  };
+}
+
+// ── WORLD MAP ────────────────────────────────────────────────
+const CITIES = {
+  NYC: {c:[-74.0, 40.7], lb:'NEW YORK'},
+  LON: {c:[-0.1,  51.5], lb:'LONDON'},
+  TYO: {c:[139.7, 35.7], lb:'TOKYO'},
+  SHA: {c:[121.5, 31.2], lb:'SHANGHAI'},
+  SIN: {c:[103.8,  1.4], lb:'SINGAPORE'},
+  TPE: {c:[121.0, 23.7], lb:'TAIPEI', tw:true},
+};
+const FLOWS = [
+  {f:'NYC',t:'TPE'},{f:'LON',t:'TPE'},
+  {f:'TYO',t:'TPE'},{f:'SIN',t:'TPE'},{f:'SHA',t:'TPE'}
+];
+const FOCUS = new Set([840,826,276,392,156,702,410,250,124,36,356,380,724,620]);
+
+async function initMap(){
+  const wrap = document.getElementById('mapwrap');
+  const W = wrap.clientWidth||680, H=270;
+  wrap.innerHTML = '';
+  const svg = d3.select('#mapwrap').append('svg')
+    .attr('width','100%').attr('height',H).attr('viewBox',`0 0 ${W} ${H}`);
+  S.mapSvg = svg; S.mapProj = null;
+  const proj = d3.geoNaturalEarth1().scale(W/6.3).translate([W/2, H/2+20]);
+  S.mapProj = proj;
+  const path = d3.geoPath().projection(proj);
+  svg.append('rect').attr('width',W).attr('height',H).attr('fill','#010b16');
+  svg.append('path').datum(d3.geoGraticule().step([30,30])()).attr('d',path).attr('class','map-grid');
+  try{
+    const world = await d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
+    const countries = topojson.feature(world, world.objects.countries);
+    svg.selectAll('.ml').data(countries.features).join('path')
+      .attr('class', d => FOCUS.has(+d.id)?'map-focus':'map-land')
+      .attr('d', path);
+  }catch(e){
+    svg.append('text').attr('x',W/2).attr('y',H/2).attr('text-anchor','middle')
+      .attr('fill','var(--tx3)').attr('font-size',12).text('地圖載入失敗');
+  }
+  drawFlows(svg, proj);
+  drawCities(svg, proj);
+}
+
+function drawFlows(svg, proj){
+  const dir = S.flowDir;
+  FLOWS.forEach((rt,i)=>{
+    const fc=CITIES[rt.f], tc=CITIES[rt.t];
+    let p1,p2;
+    try{p1=proj(fc.c);p2=proj(tc.c);}catch(e){return;}
+    if(!p1||!p2||p1.some(isNaN)||p2.some(isNaN))return;
+    const[x1,y1]=p1,[x2,y2]=p2;
+    const dx=x2-x1,dy=y2-y1,cx=x1+dx*.5-dy*.22,cy=y1+dy*.5+dx*.08;
+    svg.append('path').attr('class',`flow-line flow-${dir}`)
+      .attr('d',`M${x1},${y1} Q${cx},${cy} ${x2},${y2}`)
+      .style('animation-delay',`${i*.52}s`);
+    const col=dir==='buy'?'var(--gr)':'var(--rd)';
+    const dot=svg.append('circle').attr('r',3).attr('fill',col)
+      .style('filter',`drop-shadow(0 0 3px ${col})`);
+    (function anim(){
+      dot.attr('cx',x1).attr('cy',y1)
+        .transition().duration(2700+i*340).delay(i*360).ease(d3.easeLinear)
+        .tween('p',()=>t=>{
+          dot.attr('cx',(1-t)*(1-t)*x1+2*(1-t)*t*cx+t*t*x2);
+          dot.attr('cy',(1-t)*(1-t)*y1+2*(1-t)*t*cy+t*t*y2);
+        }).on('end',anim);
+    })();
+  });
+}
+
+function drawCities(svg, proj){
+  Object.values(CITIES).forEach(c=>{
+    let xy;try{xy=proj(c.c);}catch(e){return;}
+    if(!xy||xy.some(isNaN))return;
+    const[x,y]=xy;
+    const g=svg.append('g').attr('transform',`translate(${x},${y})`);
+    if(c.tw){
+      // ★ 台灣：純 SVG circle，不用 GeoJSON（避免大橢圓）
+      g.append('circle').attr('r',16).attr('fill','rgba(56,189,248,.05)').attr('stroke','rgba(56,189,248,.18)').attr('stroke-width',1);
+      g.append('circle').attr('r',7).attr('fill','rgba(56,189,248,.1)').attr('stroke','rgba(56,189,248,.3)').attr('stroke-width',1);
+      g.append('circle').attr('r',4).attr('fill','var(--ac)').attr('stroke','#060d1a').attr('stroke-width',1.5)
+        .style('filter','drop-shadow(0 0 5px rgba(56,189,248,.9))');
+      g.append('text').attr('x',9).attr('y',-9)
+        .attr('font-family',"'JetBrains Mono',monospace").attr('font-size',9.5)
+        .attr('fill','var(--ac)').attr('font-weight','700').text(c.lb);
+    }else{
+      g.append('circle').attr('r',3).attr('fill','rgba(56,189,248,.65)').attr('stroke','#060d1a').attr('stroke-width',1)
+        .style('filter','drop-shadow(0 0 2px rgba(56,189,248,.5))');
+      g.append('text').attr('x',5).attr('y',-5)
+        .attr('font-family',"'JetBrains Mono',monospace").attr('font-size',7.5)
+        .attr('fill','rgba(148,163,184,.6)').text(c.lb);
+    }
+  });
+}
+
+function redrawFlows(){
+  if(!S.mapSvg||!S.mapProj)return;
+  S.mapSvg.selectAll('.flow-line').remove();
+  drawFlows(S.mapSvg, S.mapProj);
+  const dl=document.getElementById('flow-dir');
+  if(dl){dl.textContent=S.flowDir==='buy'?'外資淨買超':'外資淨賣超';
+    dl.style.color=S.flowDir==='buy'?'var(--gr)':'var(--rd)';}
+}
+
+// ── RENDER: MACRO PANEL ──────────────────────────────────────
+const MACRO_ORDER = [
+  {sym:'DX-Y.NYB', lbl:'DXY 美元',  note:'強→資金回美'},
+  {sym:'^VIX',     lbl:'VIX 恐慌',  note:'>30極端恐慌'},
+  {sym:'^MOVE',    lbl:'MOVE 債波',  note:'債市波動度'},
+  {sym:'^TNX',     lbl:'10Y 美債%', note:'利率錨點'},
+  {sym:'GC=F',     lbl:'黃金$/oz',  note:'避險資產'},
+  {sym:'CL=F',     lbl:'WTI$/bbl',  note:'原油指標'},
+  {sym:'USDTWD=X', lbl:'USD/TWD',   note:'台幣匯率'},
+  {sym:'^TWII',    lbl:'台灣加權',  note:'大盤指數'},
+  {sym:'fg',       lbl:'恐懼貪婪',  note:'Alternative.me'},
+];
+
+function macroCard(q, fg){
+  if(q.sym === 'fg'){
+    const val = parseInt(fg?.value||'25');
+    const lbl2 = fg?.value_classification||'--';
+    const col = val<25?'var(--rd)':val<45?'var(--yw)':val<55?'var(--tx)':val<75?'var(--gr)':'var(--ac)';
+    const em = val<25?'😱':val<45?'😨':val<55?'😐':val<75?'🙂':'🤑';
+    return`<div class="card2 kpi">
+      <div class="kpi-lbl">${q.lbl}</div>
+      <div class="kpi-val" style="font-size:26px">${em}</div>
+      <div style="font-size:12px;font-weight:700;color:${col};margin-top:4px">${val} · ${lbl2}</div>
+      <div style="font-size:9px;color:var(--tx3);margin-top:2px">${q.note}</div>
+    </div>`;
+  }
+  const item = q.data;
+  if(!item) return`<div class="card2 kpi">
+    <div class="kpi-lbl">${q.lbl}</div>
+    <div class="kpi-val" style="color:var(--tx3);font-size:18px">--</div>
+    <div style="font-size:9px;color:var(--tx3);margin-top:4px">${q.note}</div>
+  </div>`;
+  const c=item.regularMarketChangePercent||0;
+  const p=item.regularMarketPrice;
+  const col=c>0?'var(--gr)':c<0?'var(--rd)':'var(--tx2)';
+  const sg=c>=0?'+':'';
+  const fmtP=q.sym==='^TNX'?p.toFixed(3)+'%':p>=1000?Math.round(p).toLocaleString():p.toFixed(2);
+  return`<div class="card2 kpi">
+    <div class="kpi-lbl">${q.lbl}</div>
+    <div class="kpi-val">${fmtP}</div>
+    <div class="kpi-chg" style="color:${col}">${sg}${c.toFixed(2)}%</div>
+    <div style="font-size:9px;color:var(--tx3);margin-top:2px">${q.note}</div>
+  </div>`;
+}
+
+function renderMacro(quotes, fg){
+  const byS = {};
+  (quotes||[]).forEach(q=>{ byS[q.symbol]=q; });
+  document.getElementById('macro-grid').innerHTML = MACRO_ORDER.map(m=>{
+    return macroCard({...m, data:byS[m.sym]}, fg);
+  }).join('');
+  const live = S.src.g==='live';
+  document.getElementById('macro-src').className = `badge ${live?'bl':'bd'}`;
+  document.getElementById('macro-src').textContent = live?'LIVE via corsproxy':'示範數據';
+}
+
+// ── RENDER: INDICES ──────────────────────────────────────────
+function idxCard(q){
+  const c=q.regularMarketChangePercent||0;
+  const p=q.regularMarketPrice;
+  const col=c>0?'var(--gr)':c<0?'var(--rd)':'var(--tx2)';
+  const fmtP=p>=10000?Math.round(p).toLocaleString():p>=100?p.toFixed(2):p.toFixed(3);
+  return`<div class="card" style="padding:10px;text-align:center">
+    <div class="mono" style="font-size:9px;color:var(--tx3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${q.shortName}</div>
+    <div class="mono" style="font-size:14px;font-weight:700;margin-bottom:2px">${fmtP}</div>
+    <div class="mono" style="font-size:11px;color:${col}">${c>=0?'+':''}${c.toFixed(2)}%</div>
+  </div>`;
+}
+
+function renderIndices(quotes){
+  const idxSyms = ['^GSPC','^IXIC','^N225','^HSI','^DJI','^FTSE','^TWII'];
+  const cmdSyms = ['GC=F','CL=F','DX-Y.NYB','USDTWD=X'];
+  const byS = {};
+  (quotes||DEMO_GLOBAL).forEach(q=>{ byS[q.symbol]=q; });
+  const main = idxSyms.map(s=>byS[s]).filter(Boolean);
+  const cmd  = cmdSyms.map(s=>byS[s]).filter(Boolean);
+  document.getElementById('idx-grid').innerHTML = main.map(idxCard).join('');
+  document.getElementById('cmd-grid').innerHTML = cmd.map(idxCard).join('');
+  // VIX
+  const vix = byS['^VIX']?.regularMarketPrice||S.vix;
+  S.vix = vix; renderVIX(vix);
+  // Ticker
+  const tkItems = (quotes||DEMO_GLOBAL)
+    .filter(q=>q.symbol!=='^VIX'&&q.symbol!=='^MOVE')
+    .map(q=>({s:q.shortName||q.symbol, p:q.regularMarketPrice, c:q.regularMarketChangePercent}));
+  buildTicker(tkItems);
+}
+
+function renderVIX(vix){
+  const pct=Math.min(100,(vix/50)*100);
+  const col=vix<15?'var(--gr)':vix<20?'#86efac':vix<25?'var(--yw)':vix<35?'var(--rd)':'var(--pu)';
+  const lbl=vix<15?'極低':vix<20?'低':vix<25?'中度':vix<35?'高':' 極端';
+  const el=document.getElementById('vix-val'); if(el){el.textContent=`${vix.toFixed(2)} · ${lbl}`; el.style.color=col;}
+  const bf=document.getElementById('vix-fill'); if(bf){bf.style.width=pct+'%'; bf.style.backgroundColor=col;}
+}
+
+// ── RENDER: T86 ──────────────────────────────────────────────
+function renderT86(data){
+  if(!data?.length)return;
+  const parsed = data
+    .filter(d=>d.ForeignInvestmentNetBuySellShares)
+    .map(d=>({...d,
+      fn:ni(d.ForeignInvestmentNetBuySellShares),
+      tn:ni(d.InvestmentTrustNetBuySellShares),
+      dn:ni(d.DealersNetBuySellShares)
+    }));
+  let fS=0,tS=0,dS=0;
+  parsed.slice(0,50).forEach(d=>{fS+=d.fn; tS+=d.tn; dS+=d.dn;});
+  const total=fS+tS+dS;
+  // Map summary
+  const ss=(id,v)=>{const el=document.getElementById(id);if(!el)return;
+    el.style.color=v>0?'var(--gr)':v<0?'var(--rd)':'var(--tx2)';
+    el.textContent=fmtM(v);};
+  ss('msf',fS); ss('mst',tS); ss('msd',dS); ss('mss',total);
+  // Flow direction
+  const nd=fS>=0?'buy':'sell';
+  if(nd!==S.flowDir){S.flowDir=nd; redrawFlows();}
+  // Sentiment bars
+  const fs=Math.min(100,Math.abs(fS)/100000*100);
+  const ts2=Math.min(100,Math.abs(total)/200000*100);
+  const fsf=document.getElementById('fs-fill'),fsv=document.getElementById('fs-val');
+  if(fsf){fsf.style.width=fs+'%'; fsf.style.backgroundColor=fS>=0?'var(--gr)':'var(--rd)';}
+  if(fsv){fsv.textContent=(fS>=0?'買超':'賣超')+' '+fs.toFixed(0)+'%'; fsv.style.color=fS>=0?'var(--gr)':'var(--rd)';}
+  const tsf=document.getElementById('ts-fill'),tsv=document.getElementById('ts-val');
+  if(tsf){tsf.style.width=ts2+'%'; tsf.style.backgroundColor=total>=0?'var(--gr)':'var(--rd)';}
+  if(tsv){tsv.textContent=(total>=0?'合力多方':'合力空方')+' '+ts2.toFixed(0)+'%'; tsv.style.color=total>=0?'var(--gr)':'var(--rd)';}
+  // Verdict
+  const vd=total>200000?'⬆ 極強多方':total>50000?'↗ 積極偏多':total>0?'↗ 溫和偏多':total>-50000?'↘ 偏空謹慎':total>-200000?'↘ 賣壓明顯':'⬇ 極強空方';
+  const vc=document.getElementById('verdict'),vs=document.getElementById('v-sub');
+  if(vc){vc.textContent=vd; vc.style.color=total>=0?'var(--gr)':'var(--rd)';}
+  if(vs){vs.textContent=`三大合計 ${fmtM(total)} 張 / 週期`;}
+  // Badge & date
+  document.getElementById('bt86').className=`badge ${S.src.t86==='live'?'bl':'bd'}`;
+  document.getElementById('bt86').textContent=S.src.t86==='live'?'T-1 LIVE':'示範';
+  const dd=document.getElementById('t86-date');
+  if(dd&&(S.t86date||parsed[0]?.Date)){
+    const raw=S.t86date||(parsed[0].Date||'');
+    let display=raw;
+    if(raw.length===8)display=`${raw.slice(0,4)}/${raw.slice(4,6)}/${raw.slice(6,8)}`;
+    dd.textContent=`資料日期：${display} (前一交易日收盤後統計)`;
+  }
+  // Top 10 table
+  const top10=[...parsed].sort((a,b)=>Math.abs(b.fn)-Math.abs(a.fn)).slice(0,10);
+  document.getElementById('t86-body').innerHTML = top10.map(d=>{
+    const s=d.fn+d.tn+d.dn;
+    return`<tr>
+      <td><span class="mono ca" style="font-size:11px">${d.Code}</span></td>
+      <td style="font-size:11px">${d.Name}</td>
+      <td style="text-align:right"><span class="mono ${d.fn>=0?'cg':'cr'}" style="font-size:11px">${fmtM(d.fn)}</span></td>
+      <td style="text-align:right"><span class="mono ${d.tn>=0?'cg':'cr'}" style="font-size:11px">${fmtM(d.tn)}</span></td>
+      <td style="text-align:right"><span class="mono ${s>=0?'cg':'cr'}" style="font-size:11px;font-weight:700">${fmtM(s)}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── RENDER: FX ───────────────────────────────────────────────
+function renderFX(r){
+  const live=S.src.fx==='live';
+  document.getElementById('bfx').className=`badge ${live?'bl':'bd'}`;
+  document.getElementById('bfx').textContent=live?'LIVE':'DEMO';
+  const pairs=[
+    {lb:'USD / TWD', v:r.TWD, n:'台幣'},
+    {lb:'USD / JPY', v:r.JPY, n:'日圓'},
+    {lb:'USD / CNY', v:r.CNY, n:'人民幣'},
+    {lb:'USD / EUR', v:r.EUR, n:'歐元'},
+    {lb:'USD / SGD', v:r.SGD, n:'星幣'},
+  ];
+  document.getElementById('fx-panel').innerHTML = pairs.map(p=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div class="mono" style="font-size:11px;color:var(--ac)">${p.lb}</div>
+        <div style="font-size:11px;color:var(--tx3)">${p.n}</div>
+      </div>
+      <div class="mono" style="font-size:16px;font-weight:700">${p.v?p.v.toFixed(p.v<10?4:2):'--'}</div>
+    </div>
+  `).join('');
+}
+
+// ── RENDER: QUOTE ────────────────────────────────────────────
+function renderQuote(stk, t86e){
+  if(!stk)return;
+  const chg=stk.regularMarketChangePercent||0;
+  const chgA=stk.regularMarketChange||0;
+  const price=stk.regularMarketPrice||0;
+  const prev=stk.regularMarketPreviousClose||price;
+  const name=stk.shortName||stk.longName||stk.symbol;
+  const code=(stk.symbol||'').replace('.TW','').replace('.TWO','');
+  const col=chg>0?'var(--gr)':chg<0?'var(--rd)':'var(--ac)';
+  const sg=chg>=0?'+':'';
+  const srcLbl=stk._demo?'DEMO':S.src.q==='live'?'LIVE':'TWSE T-1';
+  document.getElementById('bq').className=`badge ${stk._demo?'bd':S.src.q==='live'?'bl':'ba'}`;
+  document.getElementById('bq').textContent=srcLbl;
+  let fn=0,tn=0,dn=0;
+  if(t86e){fn=ni(t86e.ForeignInvestmentNetBuySellShares);tn=ni(t86e.InvestmentTrustNetBuySellShares);dn=ni(t86e.DealersNetBuySellShares);}
+  document.getElementById('qpanel').innerHTML=`
+    <div style="margin-bottom:10px">
+      <div class="mono" style="font-size:11px;color:var(--tx3);letter-spacing:.1em;margin-bottom:3px">${code}</div>
+      <div style="font-size:17px;font-weight:700">${name}</div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:10px;margin-bottom:13px;padding-bottom:11px;border-bottom:1px solid var(--border)">
+      <div class="mono" style="font-size:34px;font-weight:700;color:${col};line-height:1">${fmt(price)}</div>
+      <div style="padding-bottom:3px">
+        <div class="mono" style="font-size:13px;font-weight:700;color:${col}">${sg}${fmt(chgA)}</div>
+        <div class="mono" style="font-size:12px;color:${col}">${sg}${chg.toFixed(2)}%</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:11px">
+      <div class="card2" style="padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--tx3);margin-bottom:3px">昨收</div>
+        <div class="mono" style="font-size:13px;font-weight:700">${fmt(prev)}</div>
+      </div>
+      <div class="card2" style="padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--tx3);margin-bottom:3px">成交(張)</div>
+        <div class="mono" style="font-size:13px;font-weight:700">${fmtM(stk.regularMarketVolume||0)}</div>
+      </div>
+      <div class="card2" style="padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--tx3);margin-bottom:3px">漲跌幅</div>
+        <div class="mono" style="font-size:13px;font-weight:700;color:${col}">${sg}${chg.toFixed(2)}%</div>
+      </div>
+    </div>
+    ${t86e?`
+    <div style="border-top:1px solid var(--border);padding-top:10px;margin-bottom:10px">
+      <div class="mono" style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px">法人籌碼 (T-1)</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+        <div class="card2" style="padding:7px;text-align:center">
+          <div style="font-size:10px;color:var(--tx3);margin-bottom:3px">外資</div>
+          <div class="mono ${fn>=0?'cg':'cr'}" style="font-size:13px;font-weight:700">${fmtM(fn)}</div>
+        </div>
+        <div class="card2" style="padding:7px;text-align:center">
+          <div style="font-size:10px;color:var(--tx3);margin-bottom:3px">投信</div>
+          <div class="mono ${tn>=0?'cg':'cr'}" style="font-size:13px;font-weight:700">${fmtM(tn)}</div>
+        </div>
+        <div class="card2" style="padding:7px;text-align:center">
+          <div style="font-size:10px;color:var(--tx3);margin-bottom:3px">自營商</div>
+          <div class="mono ${dn>=0?'cg':'cr'}" style="font-size:13px;font-weight:700">${fmtM(dn)}</div>
+        </div>
+      </div>
+    </div>`:''}
+    <button class="btn" onclick="loadToTC('${code}')" style="width:100%;font-size:11px;margin-top:6px">
+      → 載入此標的至 TC-03 模擬器
+    </button>
+  `;
+}
+
+// ── TC-03 SIMULATOR ──────────────────────────────────────────
+// 公式：1 張 = 1,000 股
+// 加碼後均價 = (持倉成本×持有張數 + 追平點×加碼張數) / (持有張數+加碼張數)
+function doTC(){
+  const cost = parseFloat(document.getElementById('tcc').value);
+  const shr  = parseFloat(document.getElementById('tcs').value)||0;
+  const price= parseFloat(document.getElementById('tcp').value);
+  const add  = parseFloat(document.getElementById('tca').value)||0;
+  const target=parseFloat(document.getElementById('tct').value);
+  const goal  =parseFloat(document.getElementById('tcg').value);
+  const badge = document.getElementById('tc-badge');
+  const out   = document.getElementById('tc-out');
+
+  if([cost,price,target].some(isNaN)){
+    out.innerHTML='<div style="color:var(--tx3);font-size:12px;text-align:center;padding:8px">請填入 ① 持倉成本、② 當前報價、③ 追平點</div>';
+    badge.className='badge bd'; badge.textContent='MONITORING';
+    return;
+  }
+
+  const totalSh = shr + add;
+  const newCost = totalSh>0 ? (cost*shr + target*add)/totalSh : cost;
+  const redPct  = cost>0 ? (cost-newCost)/cost*100 : 0;
+  const pnlNowPct  = cost>0 ? (price-cost)/cost*100 : 0;
+  const pnlNowAmt  = shr>0  ? (price-cost)*shr*1000 : null;
+  const pnlAftPct  = newCost>0 ? (price-newCost)/newCost*100 : 0;
+  const pnlAftAmt  = totalSh>0 ? (price-newCost)*totalSh*1000 : null;
+  const addCapital = add>0  ? add*target*1000 : 0;
+  const exec = price<=target;
+  const gap  = price>target ? (price-target)/price*100 : 0;
+  const hasGoal = !isNaN(goal)&&goal>0;
+  const goalPct = hasGoal&&newCost>0 ? (goal-newCost)/newCost*100 : null;
+  const goalAmt = hasGoal&&totalSh>0 ? (goal-newCost)*totalSh*1000 : null;
+
+  badge.className = `badge ${exec?'br':'bd'}`;
+  badge.textContent = exec ? '⚡ 執行訊號' : '👁 監控中';
+
+  const fmtNTD = n => {
+    if(!n||isNaN(n))return'--';
+    const abs=Math.abs(n), sign=n>=0?'+':'-';
+    if(abs>=1e8) return sign+(abs/1e8).toFixed(2)+'億';
+    if(abs>=1e4) return sign+(abs/1e4).toFixed(1)+'萬';
+    return (n>=0?'+':'')+Math.round(n).toLocaleString();
+  };
+
+  out.innerHTML = `
+    ${shr>0?`
+    <!-- 現況 -->
+    <div class="mono" style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">── 現況持倉 ──</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
+      <div class="card2" style="padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--tx3);margin-bottom:3px">持有張數</div>
+        <div class="mono ca" style="font-size:15px;font-weight:700">${shr}張</div>
+      </div>
+      <div class="card2" style="padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--tx3);margin-bottom:3px">現持市值</div>
+        <div class="mono" style="font-size:13px;font-weight:700">${fmtNTD(price*shr*1000)}</div>
+      </div>
+      <div class="card2" style="padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--tx3);margin-bottom:3px">現損益</div>
+        <div class="mono ${(pnlNowPct||0)>=0?'cg':'cr'}" style="font-size:13px;font-weight:700">${pnlNowAmt!==null?fmtNTD(pnlNowAmt):'--'}</div>
+      </div>
+    </div>`:``}
+
+    ${add>0?`
+    <!-- 加碼模擬 -->
+    <div class="mono" style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">── 加碼模擬（+${add}張 @${fmt(target)}）──</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:10px">
+      <div class="card2" style="padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--tx3);margin-bottom:3px">新均價</div>
+        <div class="mono ca" style="font-size:19px;font-weight:700">${fmt(newCost)}</div>
+      </div>
+      <div class="card2" style="padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--tx3);margin-bottom:3px">成本降低</div>
+        <div class="mono cg" style="font-size:19px;font-weight:700">-${redPct.toFixed(2)}%</div>
+      </div>
+      <div class="card2" style="padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--yw);margin-bottom:3px">需追加資金</div>
+        <div class="mono cy" style="font-size:13px;font-weight:700">${fmtNTD(addCapital)}</div>
+      </div>
+      <div class="card2" style="padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--tx3);margin-bottom:3px">加碼後損益</div>
+        <div class="mono ${pnlAftPct>=0?'cg':'cr'}" style="font-size:13px;font-weight:700">${pnlAftAmt!==null?fmtNTD(pnlAftAmt):'--'}</div>
+      </div>
+    </div>`:``}
+
+    ${hasGoal&&goalAmt!==null?`
+    <!-- 目標試算 -->
+    <div style="padding:10px 12px;border-radius:7px;background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.18);margin-bottom:8px">
+      <div class="mono" style="font-size:10px;font-weight:700;color:var(--gr);margin-bottom:5px">🎯 目標價 ${fmt(goal)} 達成預估</div>
+      <div style="display:flex;justify-content:space-between">
+        <div>
+          <div style="font-size:11px;color:var(--tx3)">報酬率（從均價起）</div>
+          <div class="mono cg" style="font-size:16px;font-weight:700">+${goalPct.toFixed(2)}%</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--tx3)">預估獲利</div>
+          <div class="mono cg" style="font-size:16px;font-weight:700">${fmtNTD(goalAmt)}</div>
+        </div>
+      </div>
+    </div>`:``}
+
+    <!-- TC-03 Decision -->
+    <div style="padding:10px 12px;border-radius:7px;background:${exec?'rgba(248,113,113,.08)':'rgba(251,191,36,.06)'};border:1px solid ${exec?'rgba(248,113,113,.35)':'rgba(251,191,36,.2)'}">
+      <div class="mono" style="font-size:11px;font-weight:700;color:${exec?'var(--rd)':'var(--yw)'};margin-bottom:4px">
+        ${exec?'⚡ 觸發追平條件':'👁 監控中 · 等待觸發'}
+      </div>
+      <div style="font-size:12px;color:var(--tx2)">
+        ${exec
+          ?`報價 ${fmt(price)} ≤ 追平點 ${fmt(target)}。${add>0?`執行加碼 ${add} 張，追加資金 ${fmtNTD(addCapital)}，均價優化至 ${fmt(newCost)}（降 ${redPct.toFixed(2)}%）。`:'請設定加碼張數。'}確認法人無連續賣壓後執行。`
+          :`距追平點 ${fmt(target)} 還差 ${fmt(price-target)} 元（${gap.toFixed(2)}%）。TC-01 靜默協議，等待觸發。`}
+      </div>
+    </div>
+  `;
+}
+
+function loadToTC(code){
+  const stk = S.stocks[code];
+  if(stk?.regularMarketPrice){
+    document.getElementById('tcp').value = stk.regularMarketPrice.toFixed(2);
+    doTC();
+  }
+}
+
+// ── SECTOR FILTER ────────────────────────────────────────────
+function buildSectorTabs(){
+  document.getElementById('sector-tabs').innerHTML = Object.keys(SECTORS).map(k=>`
+    <button class="stab ${k===S.sector?'active':''}" onclick="setSector('${k}')">${k}</button>
+  `).join('');
+}
+function setSector(name){
+  S.sector = name;
+  buildSectorTabs();
+  renderWL(S.stocks, Object.fromEntries(S.t86.map(d=>[d.Code,d])));
+  const codes = SECTORS[name];
+  document.getElementById('wl-sector-note').textContent =
+    codes ? `篩選 ${name}（${codes.length} 股）` : '顯示全部自選股';
+}
+
+// ── WATCHLIST ────────────────────────────────────────────────
+function stkSector(stk, code){
+  if(stk?._sector) return stk._sector;
+  const db=DEMO_DB[code]; if(db?.sector)return db.sector;
+  for(const[k,codes] of Object.entries(SECTORS)){
+    if(k!=='全部'&&codes?.includes(code))return k;
+  }
+  return '';
+}
+
+function calcRisk(chg, fn, tn, vix){
+  let s=50;
+  if(chg>3)s-=18;else if(chg>1)s-=9;else if(chg<-3)s+=18;else if(chg<-1)s+=9;
+  if(fn>80000)s-=14;else if(fn>20000)s-=7;else if(fn<-80000)s+=14;else if(fn<-20000)s+=7;
+  if(tn>20000)s-=5;else if(tn<-20000)s+=5;
+  if(vix){if(vix>30)s+=14;else if(vix>22)s+=6;else if(vix<15)s-=5;}
+  return Math.max(0,Math.min(100,s));
+}
+
+function renderWL(dmap, t86m){
+  const filter = SECTORS[S.sector];
+  const list = S.wl.filter(c => !filter || filter.includes(c));
+  if(!list.length){
+    document.getElementById('wl-body').innerHTML=
+      `<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--tx3)">此產業分類無自選股（點「+新增」加入代號）</td></tr>`;
+    return;
+  }
+  document.getElementById('wl-body').innerHTML = list.map(code=>{
+    const stk=dmap[code];
+    if(!stk)return`<tr><td colspan="10" class="mono" style="color:var(--tx3);font-size:12px;padding:10px 10px">${code} 查詢中...</td></tr>`;
+    const chg=stk.regularMarketChangePercent||0;
+    const col=chg>0?'var(--gr)':chg<0?'var(--rd)':'var(--ac)';
+    const sg=chg>=0?'+':'';
+    const t=t86m[code];
+    const fn=t?ni(t.ForeignInvestmentNetBuySellShares):0;
+    const tn2=t?ni(t.InvestmentTrustNetBuySellShares):0;
+    const chip=fn+tn2;
+    const chip_b=chip>0?'<span class="badge bl" style="font-size:9px">偏多</span>':chip<0?'<span class="badge br" style="font-size:9px">偏空</span>':'<span class="badge bd" style="font-size:9px">中立</span>';
+    const rs=calcRisk(chg,fn,tn2,S.vix);
+    const rc=rs<30?'var(--gr)':rs<60?'var(--yw)':rs<80?'var(--rd)':'var(--pu)';
+    const rl=rs<30?'低':rs<60?'中':rs<80?'高':'極高';
+    const sec=stkSector(stk,code);
+    return`<tr>
+      <td>
+        <span class="mono ca" style="font-size:12px;font-weight:700">${code}</span>
+        ${sec?`<div class="mono" style="font-size:9px;color:var(--tx3)">${sec}</div>`:''}
+      </td>
+      <td style="font-size:13px">${stk.shortName||code}</td>
+      <td style="text-align:right"><span class="mono" style="font-size:14px;font-weight:700;color:${col}">${fmt(stk.regularMarketPrice)}</span></td>
+      <td style="text-align:right"><span class="mono" style="font-size:12px;color:${col}">${sg}${chg.toFixed(2)}%</span></td>
+      <td style="text-align:right"><span class="mono ${fn>=0?'cg':'cr'}" style="font-size:11px">${fmtM(fn)}</span></td>
+      <td style="text-align:right"><span class="mono ${tn2>=0?'cg':'cr'}" style="font-size:11px">${fmtM(tn2)}</span></td>
+      <td style="text-align:right"><span class="mono cm" style="font-size:11px">${fmtM(stk.regularMarketVolume||0)}</span></td>
+      <td style="text-align:center">${chip_b}</td>
+      <td style="text-align:center">
+        <div style="display:flex;align-items:center;gap:5px;justify-content:center">
+          <div style="width:36px;height:4px;background:rgba(255,255,255,.08);border-radius:2px">
+            <div style="height:100%;width:${rs}%;background:${rc};border-radius:2px"></div>
+          </div>
+          <span class="mono" style="font-size:10px;color:${rc}">${rl}</span>
+        </div>
+      </td>
+      <td style="text-align:center">
+        <button class="btn btn-sm" onclick="doSearch('${code}')" style="margin-right:3px">分析</button>
+        <button class="btn btn-sm btn-red" onclick="rmWL('${code}')">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── USER ACTIONS ─────────────────────────────────────────────
+async function doSearch(code){
+  const inp=document.getElementById('si');
+  const c=(code||(inp.value.trim().toUpperCase())).replace(/\s/g,'');
+  if(!c)return;
+  inp.value=c;
+  document.getElementById('qpanel').innerHTML=
+    `<div style="text-align:center;padding:24px;color:var(--tx3);display:flex;align-items:center;justify-content:center;gap:8px">
+      <span class="sp"></span>查詢 ${c} 中（Yahoo→TWSE→Demo）...
+    </div>`;
+  const res = await fetchTW(c);
+  S.stocks[c] = res;
+  const t86e = S.t86.find(d=>d.Code===c);
+  renderQuote(res, t86e);
+  if(res?.regularMarketPrice){
+    document.getElementById('tcp').value = res.regularMarketPrice.toFixed(2);
+    doTC();
+  }
+}
+
+function addWL(){
+  const inp=document.getElementById('wl-add');
+  const c=inp.value.trim().toUpperCase().replace(/\s/g,'');
+  if(!c||S.wl.includes(c)){inp.value='';return;}
+  S.wl.push(c); inp.value='';
+  refreshWL();
+}
+function rmWL(code){
+  S.wl=S.wl.filter(c=>c!==code);
+  renderWL(S.stocks, Object.fromEntries(S.t86.map(d=>[d.Code,d])));
+}
+
+async function refreshWL(){
+  document.getElementById('wl-body').innerHTML=
+    `<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--tx3)"><span class="sp"></span> 更新自選股資料...</td></tr>`;
+  const stocks={};
+  await Promise.all(S.wl.map(async code=>{
+    const s=await fetchTW(code);
+    if(s)stocks[code]=s;
+  }));
+  S.stocks={...S.stocks,...stocks};
+  const t86m=Object.fromEntries(S.t86.map(d=>[d.Code,d]));
+  renderWL(S.stocks, t86m);
+}
+
+// Quick tags
+function buildQuickTags(){
+  document.getElementById('qtags').innerHTML=
+    ['2330','2303','2454','009816','0050','2881','3008'].map(c=>
+      `<button onclick="doSearch('${c}')"
+        style="background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:4px;
+          color:var(--tx3);cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 8px;transition:.16s"
+        onmouseover="this.style.color='var(--ac)';this.style.borderColor='var(--border2)'"
+        onmouseout="this.style.color='var(--tx3)';this.style.borderColor='var(--border)'">${c}</button>`
+    ).join('');
+}
+
+// Header badge
+function updateHBadge(){
+  const live=Object.values(S.src).some(v=>v==='live'||v==='delayed');
+  document.getElementById('hbadge').className=`badge ${live?'bl':'bd'}`;
+  document.getElementById('hbadge').textContent=live?'LIVE DATA':'DEMO MODE';
+}
+
+// Settings
+function toggleSettings(){
+  const p=document.getElementById('settings-panel');
+  p.style.display=p.style.display==='none'?'':'none';
+  if(S.fredKey)document.getElementById('fred-key').value=S.fredKey;
+}
+function saveFredKey(){
+  const k=document.getElementById('fred-key').value.trim();
+  S.fredKey=k;
+  localStorage.setItem('fredKey',k);
+  document.getElementById('fred-status').textContent=k?'✓ 已儲存，下次刷新生效':'Key 已清除';
+  setTimeout(()=>{document.getElementById('fred-status').textContent='';},2500);
+}
+
+// ── REFRESH ALL ──────────────────────────────────────────────
+function bootMsg(m){const el=document.getElementById('boot-msg');if(el)el.textContent=m;}
+
+async function refreshAll(){
+  document.getElementById('hbadge').className='badge ba';
+  document.getElementById('hbadge').textContent='更新中...';
+  bootMsg('連接 TWSE T86...');
+
+  const [t86raw, fxRates, gRaw, fgRaw] = await Promise.all([
+    twseT86(),
+    fetchFX(),
+    yahooQ(['DX-Y.NYB','^VIX','^MOVE','^TNX','GC=F','CL=F','USDTWD=X',
+            '^TWII','^GSPC','^IXIC','^N225','^HSI','^DJI','^FTSE']),
+    fetchFG(),
+  ]);
+
+  S.t86 = t86raw || demoT86();
+  const gq = gRaw || DEMO_GLOBAL;
+  S.gq = gq;
+
+  renderT86(S.t86);
+  renderFX(fxRates);
+  renderMacro(gq, fgRaw);
+  renderIndices(gq);
+
+  bootMsg('更新自選股...');
+  await refreshWL();
+  updateHBadge();
+}
+
+// Demo T86 data
 function demoT86(){
+  S.t86date='示範資料';
   return[
     {Date:'20250418',Code:'2330',Name:'台積電',ForeignInvestmentNetBuySellShares:'18,564',InvestmentTrustNetBuySellShares:'2,341',DealersNetBuySellShares:'-567'},
     {Date:'20250418',Code:'2303',Name:'聯電',ForeignInvestmentNetBuySellShares:'45,123',InvestmentTrustNetBuySellShares:'12,000',DealersNetBuySellShares:'3,400'},
@@ -587,609 +1506,34 @@ function demoT86(){
     {Date:'20250418',Code:'2881',Name:'富邦金',ForeignInvestmentNetBuySellShares:'11,200',InvestmentTrustNetBuySellShares:'3,400',DealersNetBuySellShares:'1,200'},
     {Date:'20250418',Code:'3008',Name:'大立光',ForeignInvestmentNetBuySellShares:'-5,600',InvestmentTrustNetBuySellShares:'-900',DealersNetBuySellShares:'-300'},
     {Date:'20250418',Code:'2382',Name:'廣達',ForeignInvestmentNetBuySellShares:'15,300',InvestmentTrustNetBuySellShares:'7,800',DealersNetBuySellShares:'2,100'},
-    {Date:'20250418',Code:'2357',Name:'華碩',ForeignInvestmentNetBuySellShares:'-3,200',InvestmentTrustNetBuySellShares:'1,100',DealersNetBuySellShares:'-400'},
     {Date:'20250418',Code:'3711',Name:'日月光投控',ForeignInvestmentNetBuySellShares:'9,800',InvestmentTrustNetBuySellShares:'2,100',DealersNetBuySellShares:'1,500'},
     {Date:'20250418',Code:'2308',Name:'台達電',ForeignInvestmentNetBuySellShares:'-4,200',InvestmentTrustNetBuySellShares:'-800',DealersNetBuySellShares:'-200'},
-  ];
-}
-function demoStk(code){
-  const DB={
-    '2330':{n:'台積電',p:2030,pc:2005,v:22450},'2303':{n:'聯電',p:73.0,pc:71.5,v:98320},
-    '2454':{n:'聯發科',p:1245,pc:1260,v:15670},'2317':{n:'鴻海',p:198.5,pc:196,v:156230},
-    '2881':{n:'富邦金',p:96.5,pc:95,v:45670},'3008':{n:'大立光',p:2180,pc:2200,v:3240},
-    '2382':{n:'廣達',p:225,pc:220,v:45000},'006208':{n:'富邦台50',p:102.5,pc:101,v:9800},
-  };
-  const d=DB[code]||{n:code,p:100,pc:99,v:10000};
-  const chg=+(((d.p-d.pc)/d.pc)*100).toFixed(2);
-  return{symbol:`${code}.TW`,shortName:d.n,longName:d.n,
-    regularMarketPrice:d.p,regularMarketPreviousClose:d.pc,
-    regularMarketChange:+(d.p-d.pc).toFixed(2),regularMarketChangePercent:chg,
-    regularMarketVolume:d.v,_demo:true};
-}
-function demoGlobal(){
-  return[
-    {symbol:'^GSPC',shortName:'S&P 500',regularMarketPrice:5218.19,regularMarketChangePercent:-1.46},
-    {symbol:'^IXIC',shortName:'NASDAQ',regularMarketPrice:16152.01,regularMarketChangePercent:-2.05},
-    {symbol:'^N225',shortName:'日經225',regularMarketPrice:34028.47,regularMarketChangePercent:-1.20},
-    {symbol:'^HSI',shortName:'恆生指數',regularMarketPrice:21395.14,regularMarketChangePercent:2.28},
-    {symbol:'^DJI',shortName:'道瓊',regularMarketPrice:38769.18,regularMarketChangePercent:-0.73},
-    {symbol:'^FTSE',shortName:'富時100',regularMarketPrice:8023.87,regularMarketChangePercent:-0.45},
-    {symbol:'GC=F',shortName:'黃金$/oz',regularMarketPrice:2356.40,regularMarketChangePercent:0.82},
-    {symbol:'CL=F',shortName:'WTI$/bbl',regularMarketPrice:84.72,regularMarketChangePercent:-1.23},
-    {symbol:'^VIX',shortName:'VIX',regularMarketPrice:21.45,regularMarketChangePercent:8.32},
-    {symbol:'USDTWD=X',shortName:'USD/TWD',regularMarketPrice:31.85,regularMarketChangePercent:-0.12},
+    {Date:'20250418',Code:'2357',Name:'華碩',ForeignInvestmentNetBuySellShares:'-3,200',InvestmentTrustNetBuySellShares:'1,100',DealersNetBuySellShares:'-400'},
   ];
 }
 
-// ── WORLD MAP ─────────────────────────────────────────────────────────
-/*  ★ 修正說明：
-    原版用 GeoJSON Polygon 定義台灣，但 D3 NaturalEarth 對「順時針」多邊形
-    判斷為「球面反轉」→ 填滿整個半球，導致大黃橢圓。
-    修正方式：完全不用 GeoJSON Polygon，改為投影後直接畫 SVG circle。    */
-
-const CITIES={
-  NYC:{c:[-74.0,40.7],lb:'NEW YORK'},
-  LON:{c:[-0.1,51.5],lb:'LONDON'},
-  TYO:{c:[139.7,35.7],lb:'TOKYO'},
-  SHA:{c:[121.5,31.2],lb:'SHANGHAI'},
-  SIN:{c:[103.8,1.4],lb:'SINGAPORE'},
-  TPE:{c:[121.5,23.7],lb:'TAIPEI',tw:true},  // ← 正確座標，使用 SVG circle
-};
-const FLOWS=[{f:'NYC',t:'TPE'},{f:'LON',t:'TPE'},{f:'TYO',t:'TPE'},{f:'SIN',t:'TPE'},{f:'SHA',t:'TPE'}];
-const FOCUS=new Set([840,826,276,392,156,702,410,250,124,36,356,380,724,620]);
-
-async function initMap(){
-  const wrap=document.getElementById('mapwrap');
-  const W=wrap.clientWidth||680, H=275;
-  S.mapW=W; S.mapH=H;
-  wrap.innerHTML='';
-  const svg=d3.select('#mapwrap').append('svg').attr('width','100%').attr('height',H).attr('viewBox',`0 0 ${W} ${H}`);
-  S.mapSvg=svg;
-  const proj=d3.geoNaturalEarth1().scale(W/6.3).translate([W/2,H/2+20]);
-  S.mapProj=proj;
-  const path=d3.geoPath().projection(proj);
-  // Ocean fill
-  svg.append('rect').attr('width',W).attr('height',H).attr('fill','var(--map-ocean)');
-  // Graticule (very subtle)
-  svg.append('path').datum(d3.geoGraticule().step([30,30])()).attr('d',path)
-    .attr('fill','none').attr('class','map-grid');
-  // Countries
-  try{
-    const world=await d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
-    const countries=topojson.feature(world,world.objects.countries);
-    svg.selectAll('.ml').data(countries.features).join('path')
-      .attr('class',d=>FOCUS.has(+d.id)?'map-focus':'map-land')
-      .attr('d',path);
-  }catch(e){
-    svg.append('text').attr('x',W/2).attr('y',H/2).attr('text-anchor','middle')
-      .attr('fill','var(--mu2)').attr('font-size',11).text('地圖載入失敗');
-  }
-  // Draw flows and city markers
-  drawFlows(svg,proj);
-  drawCities(svg,proj);
-}
-
-function drawFlows(svg,proj){
-  const dir=S.flowDir;
-  FLOWS.forEach((rt,i)=>{
-    const fc=CITIES[rt.f], tc2=CITIES[rt.t];
-    let p1,p2;
-    try{p1=proj(fc.c);p2=proj(tc2.c);}catch(e){return;}
-    if(!p1||!p2||p1.some(isNaN)||p2.some(isNaN))return;
-    const[x1,y1]=p1,[x2,y2]=p2;
-    const dx=x2-x1,dy=y2-y1,cx=x1+dx*.5-dy*.25,cy=y1+dy*.5+dx*.08;
-    svg.append('path').attr('class',`flow-line flow-${dir}`)
-      .attr('d',`M${x1},${y1} Q${cx},${cy} ${x2},${y2}`)
-      .style('animation-delay',`${i*.5}s`);
-    // Animated dot along the curve
-    const col=dir==='buy'?'var(--gr)':'var(--rd)';
-    const dot=svg.append('circle').attr('r',2.5).attr('fill',col)
-      .style('filter',`drop-shadow(0 0 2px ${col})`);
-    (function animDot(){
-      dot.attr('cx',x1).attr('cy',y1)
-        .transition().duration(2500+i*350).delay(i*380).ease(d3.easeLinear)
-        .tween('p',()=>t=>{
-          const px=(1-t)*(1-t)*x1+2*(1-t)*t*cx+t*t*x2;
-          const py=(1-t)*(1-t)*y1+2*(1-t)*t*cy+t*t*y2;
-          dot.attr('cx',px).attr('cy',py);
-        }).on('end',animDot);
-    })();
-  });
-}
-
-function drawCities(svg,proj){
-  Object.values(CITIES).forEach(c=>{
-    let xy;try{xy=proj(c.c);}catch(e){return;}
-    if(!xy||xy.some(isNaN))return;
-    const[x,y]=xy;
-    const g=svg.append('g').attr('transform',`translate(${x},${y})`);
-    if(c.tw){
-      // ★ 台灣：直接 SVG circle，不用 GeoJSON Polygon
-      // 外圈 pulse ring
-      g.append('circle').attr('r',14).attr('fill','rgba(0,188,212,.06)')
-        .attr('stroke','rgba(0,188,212,.2)').attr('stroke-width',1);
-      g.append('circle').attr('r',7).attr('fill','rgba(0,188,212,.12)')
-        .attr('stroke','rgba(0,188,212,.3)').attr('stroke-width',1);
-      // 核心點（cyan 而非黃色，避免刺眼）
-      g.append('circle').attr('r',4).attr('fill','var(--ac)')
-        .attr('stroke','#00070e').attr('stroke-width',1.5)
-        .style('filter','drop-shadow(0 0 4px rgba(0,188,212,.9))');
-      g.append('text').attr('x',8).attr('y',-8)
-        .attr('font-family',"'JetBrains Mono',monospace")
-        .attr('font-size',9).attr('fill','var(--ac)').attr('font-weight','700').text(c.lb);
-    }else{
-      g.append('circle').attr('r',3).attr('fill','rgba(0,188,212,.7)')
-        .attr('stroke','#00070e').attr('stroke-width',1)
-        .style('filter','drop-shadow(0 0 2px rgba(0,188,212,.6))');
-      g.append('text').attr('x',5).attr('y',-5)
-        .attr('font-family',"'JetBrains Mono',monospace")
-        .attr('font-size',7).attr('fill','rgba(176,190,197,.55)').text(c.lb);
-    }
-  });
-}
-
-function redrawFlows(){
-  if(!S.mapSvg||!S.mapProj)return;
-  S.mapSvg.selectAll('.flow-line').remove();
-  // Remove only the animated dots (not city markers)
-  S.mapSvg.selectAll('circle').filter(function(){
-    const r=+this.getAttribute('r');return r<=3&&!this.parentNode.getAttribute('transform');
-  }).remove();
-  drawFlows(S.mapSvg,S.mapProj);
-  document.getElementById('flow-label').textContent=S.flowDir==='buy'?'外資淨買超':'外資淨賣超';
-  document.getElementById('flow-label').style.color=S.flowDir==='buy'?'var(--gr)':'var(--rd)';
-}
-
-// ── RENDER: INDICES ──
-function idxCard(q){
-  const c=q.regularMarketChangePercent||0;
-  const col=c>0?'var(--gr)':c<0?'var(--rd)':'var(--mu2)';
-  const p=q.regularMarketPrice;
-  return`<div class="g1" style="padding:9px;text-align:center">
-    <div style="font-size:7px;color:var(--mu2);margin-bottom:3px;text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${q.shortName||q.symbol}</div>
-    <div class="mono" style="font-size:12px;font-weight:700;margin-bottom:2px">${p>=1000?Math.round(p).toLocaleString():p.toFixed(2)}</div>
-    <div class="mono" style="font-size:9px;color:${col}">${c>=0?'+':''}${c.toFixed(2)}%</div>
-  </div>`;
-}
-function renderIndices(quotes){
-  const mainS=['^GSPC','^IXIC','^N225','^HSI','^DJI','^FTSE'];
-  const main=mainS.map(s=>quotes.find(q=>q.symbol===s)).filter(Boolean);
-  const cmdData=[
-    quotes.find(q=>q.symbol==='GC=F')||{symbol:'GC=F',shortName:'黃金$/oz',regularMarketPrice:2356.40,regularMarketChangePercent:0.82},
-    quotes.find(q=>q.symbol==='CL=F')||{symbol:'CL=F',shortName:'WTI$/bbl',regularMarketPrice:84.72,regularMarketChangePercent:-1.23},
-    quotes.find(q=>q.symbol==='^VIX')||{symbol:'^VIX',shortName:'VIX',regularMarketPrice:21.45,regularMarketChangePercent:8.32},
-    quotes.find(q=>q.symbol==='USDTWD=X')||{symbol:'USDTWD=X',shortName:'USD/TWD',regularMarketPrice:31.85,regularMarketChangePercent:-0.12},
-  ];
-  document.getElementById('idxgrid').innerHTML=main.map(idxCard).join('');
-  document.getElementById('cmdgrid').innerHTML=cmdData.map(idxCard).join('');
-  const vix=quotes.find(q=>q.symbol==='^VIX')?.regularMarketPrice||S.vix;
-  S.vix=vix; updateVIX(vix);
-  const tkItems=quotes.filter(q=>q.symbol!=='^VIX').map(q=>({s:q.shortName||q.symbol,p:q.regularMarketPrice,c:q.regularMarketChangePercent}));
-  buildTicker(tkItems);
-}
-function updateVIX(vix){
-  const pct=Math.min(100,(vix/50)*100);
-  const col=vix<15?'var(--gr)':vix<20?'#69f0ae':vix<25?'var(--yw)':vix<35?'var(--rd)':'var(--pu)';
-  const lbl=vix<15?'極低':vix<20?'低':vix<25?'中度':vix<35?'高':' 極端';
-  document.getElementById('vval').textContent=`${vix.toFixed(2)} · ${lbl}恐慌`;
-  document.getElementById('vval').style.color=col;
-  document.getElementById('vfill').style.width=pct+'%';
-  document.getElementById('vfill').style.backgroundColor=col;
-}
-
-// ── RENDER: T86 ──
-function renderT86(data){
-  if(!data?.length)return;
-  const parsed=data
-    .filter(d=>d.ForeignInvestmentNetBuySellShares)
-    .map(d=>({...d,fn:ni(d.ForeignInvestmentNetBuySellShares),tn:ni(d.InvestmentTrustNetBuySellShares),dn:ni(d.DealersNetBuySellShares)}));
-  let fS=0,tS=0,dS=0;
-  parsed.slice(0,50).forEach(d=>{fS+=d.fn;tS+=d.tn;dS+=d.dn;});
-  const total=fS+tS+dS;
-  // Map stats
-  const ss=(id,v,subId,sub)=>{
-    const el=document.getElementById(id);if(!el)return;
-    el.style.color=v>0?'var(--gr)':v<0?'var(--rd)':'var(--mu2)';
-    el.textContent=(v>0?'+':'')+fmtM(v);
-    if(subId&&sub){const sel=document.getElementById(subId);if(sel)sel.textContent=sub;}
-  };
-  ss('msf',fS,'msf-sub','外資'); ss('mst',tS); ss('msd',dS); ss('mss',total);
-  // Flow direction
-  const nd=fS>=0?'buy':'sell';
-  if(nd!==S.flowDir){S.flowDir=nd;redrawFlows();}
-  // Sentiment
-  const fs=Math.min(100,Math.abs(fS)/100000*100);
-  const ts2=Math.min(100,Math.abs(total)/200000*100);
-  document.getElementById('fsfill').style.width=fs+'%';
-  document.getElementById('fsfill').style.backgroundColor=fS>=0?'var(--gr)':'var(--rd)';
-  document.getElementById('fsval').textContent=(fS>=0?'外資買超 ':'外資賣超 ')+fs.toFixed(0)+'%';
-  document.getElementById('fsval').style.color=fS>=0?'var(--gr)':'var(--rd)';
-  document.getElementById('tsfill').style.width=ts2+'%';
-  document.getElementById('tsfill').style.backgroundColor=total>=0?'var(--gr)':'var(--rd)';
-  document.getElementById('tsval').textContent=(total>=0?'多方合力 ':'空方合力 ')+ts2.toFixed(0)+'%';
-  document.getElementById('tsval').style.color=total>=0?'var(--gr)':'var(--rd)';
-  const vd=total>200000?'⬆ 極強多方':total>50000?'↗ 積極偏多':total>0?'↗ 溫和偏多':total>-50000?'↘ 偏空謹慎':total>-200000?'↘ 明顯賣壓':'⬇ 極強空方';
-  document.getElementById('verdict').textContent=vd;
-  document.getElementById('verdict').style.color=total>=0?'var(--gr)':'var(--rd)';
-  document.getElementById('vsub').textContent=`三大合計 ${total>=0?'+':''}${fmtM(total)} 張`;
-  // Badge + date
-  document.getElementById('bt86').className=`badge ${S.src.t86==='live'?'b-live':'b-demo'}`;
-  document.getElementById('bt86').textContent=S.src.t86==='live'?'即時':'示範';
-  if(S.t86date||parsed[0]?.Date){
-    const raw=S.t86date||parsed[0].Date;
-    document.getElementById('t86date').textContent=`資料日期：${raw} （前一交易日收盤後統計）`;
-    document.getElementById('t86date').style.color='var(--ac)';
-  }
-  // Table top10 by |foreign|
-  const top10=[...parsed].sort((a,b)=>Math.abs(b.fn)-Math.abs(a.fn)).slice(0,10);
-  document.getElementById('t86body').innerHTML=top10.map(d=>{
-    const s=d.fn+d.tn+d.dn;
-    return`<tr>
-      <td><span class="mono ca" style="font-size:9px">${d.Code}</span></td>
-      <td style="font-size:10px">${d.Name}</td>
-      <td style="text-align:right"><span class="mono ${d.fn>=0?'cg':'cr'}" style="font-size:9px">${d.fn>=0?'+':''}${fmtM(d.fn)}</span></td>
-      <td style="text-align:right"><span class="mono ${d.tn>=0?'cg':'cr'}" style="font-size:9px">${d.tn>=0?'+':''}${fmtM(d.tn)}</span></td>
-      <td style="text-align:right"><span class="mono ${s>=0?'cg':'cr'}" style="font-size:9px;font-weight:700">${s>=0?'+':''}${fmtM(s)}</span></td>
-    </tr>`;
-  }).join('');
-}
-
-// ── RENDER: FX ──
-function renderFX(r){
-  document.getElementById('bfx').className=`badge ${S.src.fx==='live'?'b-live':'b-demo'}`;
-  document.getElementById('bfx').textContent=S.src.fx==='live'?'LIVE':'DEMO';
-  const pairs=[{lb:'USD / TWD',v:r.TWD,n:'台幣'},{lb:'USD / JPY',v:r.JPY,n:'日圓'},
-    {lb:'USD / CNY',v:r.CNY,n:'人民幣'},{lb:'USD / EUR',v:r.EUR,n:'歐元'},{lb:'USD / SGD',v:r.SGD,n:'星幣'}];
-  document.getElementById('fxpanel').innerHTML=pairs.map(p=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--b1)">
-      <div>
-        <div class="mono" style="font-size:9px;color:var(--ac)">${p.lb}</div>
-        <div style="font-size:8px;color:var(--mu2)">${p.n}</div>
-      </div>
-      <div class="mono" style="font-size:13px;font-weight:700">${p.v?p.v.toFixed(p.v<10?4:2):'--'}</div>
-    </div>
-  `).join('');
-}
-
-// ── RENDER: QUOTE ──
-function renderQuote(stk,t86e){
-  if(!stk)return;
-  const chg=stk.regularMarketChangePercent||0;
-  const chgA=stk.regularMarketChange||0;
-  const price=stk.regularMarketPrice||0;
-  const prev=stk.regularMarketPreviousClose||price;
-  const vol=stk.regularMarketVolume||0;
-  const name=stk.shortName||stk.longName||stk.symbol;
-  const code=(stk.symbol||'').replace('.TW','').replace('.TWO','');
-  const col=chg>0?'var(--gr)':chg<0?'var(--rd)':'var(--ac)';
-  const sg=chg>0?'+':'';
-  const srcLabel=stk._demo?'DEMO':S.src.q==='live'?'LIVE':stk._src==='otc'?'OTC T-1':'TSE T-1';
-  document.getElementById('bq').className=`badge ${stk._demo?'b-demo':S.src.q==='live'?'b-live':'b-info'}`;
-  document.getElementById('bq').textContent=srcLabel;
-  let fn=0,tn=0,dn=0;
-  if(t86e){fn=ni(t86e.ForeignInvestmentNetBuySellShares);tn=ni(t86e.InvestmentTrustNetBuySellShares);dn=ni(t86e.DealersNetBuySellShares);}
-  document.getElementById('qpanel').innerHTML=`
-    <div style="margin-bottom:8px">
-      <div style="font-size:8px;color:var(--mu2);font-family:'JetBrains Mono',monospace;letter-spacing:.12em;margin-bottom:2px">${code} · ${stk._src==='otc'?'上櫃':'上市'}</div>
-      <div style="font-size:14px;font-weight:700">${name}</div>
-    </div>
-    <div style="display:flex;align-items:flex-end;gap:9px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--b1)">
-      <div class="mono" style="font-size:30px;font-weight:700;color:${col};line-height:1">${fmt(price)}</div>
-      <div style="padding-bottom:2px">
-        <div class="mono" style="font-size:11px;font-weight:700;color:${col}">${sg}${fmt(chgA)}</div>
-        <div class="mono" style="font-size:9px;color:${col}">${sg}${chg.toFixed(2)}%</div>
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:10px">
-      <div class="g2" style="padding:6px;text-align:center">
-        <div style="font-size:7px;color:var(--mu2);margin-bottom:2px">昨收</div>
-        <div class="mono" style="font-size:11px">${fmt(prev)}</div>
-      </div>
-      <div class="g2" style="padding:6px;text-align:center">
-        <div style="font-size:7px;color:var(--mu2);margin-bottom:2px">成交(張)</div>
-        <div class="mono" style="font-size:11px">${fmtM(vol)}</div>
-      </div>
-      <div class="g2" style="padding:6px;text-align:center">
-        <div style="font-size:7px;color:var(--mu2);margin-bottom:2px">漲跌幅</div>
-        <div class="mono" style="font-size:11px;color:${col}">${sg}${chg.toFixed(2)}%</div>
-      </div>
-    </div>
-    ${t86e?`
-    <div style="border-top:1px solid var(--b1);padding-top:9px">
-      <div style="font-size:7px;color:var(--mu2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">法人籌碼 (T-1)</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
-        <div class="g2" style="padding:6px;text-align:center">
-          <div style="font-size:7px;color:var(--mu2);margin-bottom:2px">外資</div>
-          <div class="mono ${fn>=0?'cg':'cr'}" style="font-size:10px;font-weight:700">${fn>=0?'+':''}${fmtM(fn)}</div>
-        </div>
-        <div class="g2" style="padding:6px;text-align:center">
-          <div style="font-size:7px;color:var(--mu2);margin-bottom:2px">投信</div>
-          <div class="mono ${tn>=0?'cg':'cr'}" style="font-size:10px;font-weight:700">${tn>=0?'+':''}${fmtM(tn)}</div>
-        </div>
-        <div class="g2" style="padding:6px;text-align:center">
-          <div style="font-size:7px;color:var(--mu2);margin-bottom:2px">自營商</div>
-          <div class="mono ${dn>=0?'cg':'cr'}" style="font-size:10px;font-weight:700">${dn>=0?'+':''}${fmtM(dn)}</div>
-        </div>
-      </div>
-    </div>
-    `:`<div style="color:var(--mu2);font-size:9px;text-align:center;margin-top:6px">法人籌碼收盤後更新</div>`}
-    <button class="abtn" onclick="loadTC('${code}')" style="margin-top:10px;width:100%;font-size:9px">
-      → 載入此標的至 TC-03 模擬器
-    </button>
-  `;
-}
-
-// ── TC-03 SIMULATOR ─────────────────────────────────────────────
-/*  新增功能：
-    · 輸入持有張數、加碼張數
-    · 輸出 NT$ 金額（損益絕對值）
-    · 目標價達成後的損益估算
-    · 加碼所需資金
-    公式（1張=1000股）：
-      加碼後均價 = (現成本×現張數 + 追平點×加碼張數) / (現張數+加碼張數)
-      現持倉市值 = 現報價 × 現張數 × 1000
-      加碼後總成本 = 加碼後均價 × (現張數+加碼張數) × 1000
-      損益 = (報價-均價) × 總張數 × 1000
-*/
-function doTC(){
-  const cost=parseFloat(document.getElementById('tcc').value);
-  const shares=parseFloat(document.getElementById('tcs').value)||0;
-  const price=parseFloat(document.getElementById('tcp').value);
-  const addSh=parseFloat(document.getElementById('tca').value)||0;
-  const target=parseFloat(document.getElementById('tct').value);
-  const goalP=parseFloat(document.getElementById('tcg').value);
-  const out=document.getElementById('tcout');
-  const badge=document.getElementById('tc03badge');
-
-  if([cost,price,target].some(isNaN)){
-    out.innerHTML='<div style="color:var(--mu2);font-size:10px;text-align:center;padding:8px 0">請填入 ① 持倉成本、② 當前報價、③ 追平點</div>';
-    return;
-  }
-
-  const totalSh=shares+addSh;
-  const newCost=totalSh>0?(cost*shares+target*addSh)/totalSh:cost;
-  const redPct=cost>0?(cost-newCost)/cost*100:0;
-  const pnlNowPct=(price-cost)/cost*100;
-  const pnlNowAmt=(price-cost)*shares*1000;
-  const pnlAfterPct=totalSh>0?(price-newCost)/newCost*100:0;
-  const pnlAfterAmt=(price-newCost)*totalSh*1000;
-  const addCapital=addSh*target*1000;
-  const exec=price<=target;
-  const gap=price>target?((price-target)/price*100):0;
-  const hasGoal=!isNaN(goalP)&&goalP>0;
-  const goalPnlPct=hasGoal&&newCost>0?(goalP-newCost)/newCost*100:null;
-  const goalPnlAmt=hasGoal?((goalP-newCost)*totalSh*1000):null;
-
-  badge.className=`badge ${exec?'b-exec':'b-hold'}`;
-  badge.textContent=exec?'⚡ 執行訊號':'👁 監控中';
-
-  const fmtNTD=n=>{
-    if(!n||isNaN(n))return'--';
-    const abs=Math.abs(n);
-    const sign=n>=0?'+':'-';
-    if(abs>=1e8)return sign+`${(abs/1e8).toFixed(2)}億`;
-    if(abs>=1e4)return sign+`${(abs/1e4).toFixed(1)}萬`;
-    return (n>=0?'+':'')+Math.round(n).toLocaleString();
-  };
-
-  out.innerHTML=`
-    <!-- 持倉現況 -->
-    <div style="font-size:8px;color:var(--mu2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px">── 現況持倉 ──</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:8px">
-      <div class="g2" style="padding:7px;text-align:center">
-        <div style="font-size:7px;color:var(--mu2);margin-bottom:2px">現持張數</div>
-        <div class="mono ca" style="font-size:13px;font-weight:700">${shares>0?shares+'張':'--'}</div>
-      </div>
-      <div class="g2" style="padding:7px;text-align:center">
-        <div style="font-size:7px;color:var(--mu2);margin-bottom:2px">現持市值</div>
-        <div class="mono" style="font-size:11px;font-weight:700">${shares>0?fmtNTD(price*shares*1000):'--'}</div>
-      </div>
-      <div class="g2" style="padding:7px;text-align:center">
-        <div style="font-size:7px;color:var(--mu2);margin-bottom:2px">現損益</div>
-        <div class="mono ${pnlNowPct>=0?'cg':'cr'}" style="font-size:11px;font-weight:700">${shares>0?fmtNTD(pnlNowAmt):'--'}</div>
-      </div>
-    </div>
-
-    <!-- 加碼後 -->
-    ${addSh>0?`
-    <div style="font-size:8px;color:var(--mu2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px">── 加碼後模擬（加${addSh}張 @${fmt(target)}）──</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px">
-      <div class="g2" style="padding:7px;text-align:center">
-        <div style="font-size:7px;color:var(--mu2);margin-bottom:2px">新均價</div>
-        <div class="mono ca" style="font-size:16px;font-weight:700">${fmt(newCost)}</div>
-      </div>
-      <div class="g2" style="padding:7px;text-align:center">
-        <div style="font-size:7px;color:var(--mu2);margin-bottom:2px">成本降低</div>
-        <div class="mono cg" style="font-size:16px;font-weight:700">-${redPct.toFixed(2)}%</div>
-      </div>
-      <div class="g2" style="padding:7px;text-align:center">
-        <div style="font-size:7px;color:var(--mu2);margin-bottom:2px">需追加資金</div>
-        <div class="mono cy" style="font-size:11px;font-weight:700">${fmtNTD(addCapital)}</div>
-      </div>
-      <div class="g2" style="padding:7px;text-align:center">
-        <div style="font-size:7px;color:var(--mu2);margin-bottom:2px">加碼後損益</div>
-        <div class="mono ${pnlAfterPct>=0?'cg':'cr'}" style="font-size:11px;font-weight:700">${fmtNTD(pnlAfterAmt)}</div>
-      </div>
-    </div>
-    `:''}
-
-    <!-- 目標價試算 -->
-    ${hasGoal&&goalPnlAmt!==null?`
-    <div class="rcard rcard-g" style="margin-bottom:8px">
-      <div style="font-size:8px;font-weight:700;color:var(--gr);margin-bottom:4px">🎯 目標價 ${fmt(goalP)} 達成時</div>
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <div style="font-size:9px;color:var(--mu2)">漲幅（從均價起）</div>
-          <div class="mono cg" style="font-size:13px;font-weight:700">+${goalPnlPct.toFixed(2)}%</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:9px;color:var(--mu2)">預估獲利</div>
-          <div class="mono cg" style="font-size:13px;font-weight:700">${fmtNTD(goalPnlAmt)}</div>
-        </div>
-      </div>
-    </div>`:''}
-
-    <!-- TC-03 建議 -->
-    <div class="rcard ${exec?'rcard-r':'rcard-y'}">
-      <div class="mono" style="font-size:9px;font-weight:700;color:${exec?'var(--rd)':'var(--yw)'};margin-bottom:3px">
-        ${exec?'⚡ 已觸發追平條件':'👁 監控中 · 等待觸發'}
-      </div>
-      <div style="font-size:10px;color:var(--mu2)">
-        ${exec
-          ?`報價 ${fmt(price)} ≤ 追平點 ${fmt(target)}。確認法人無連續賣壓後，${addSh>0?`執行加碼 ${addSh} 張，追加 ${fmtNTD(addCapital)}，均價優化至 ${fmt(newCost)}`:'請設定加碼張數再模擬'}。`
-          :`距追平點 ${fmt(target)} 還有 ${gap.toFixed(2)}%（差 ${fmt(price-target)} 元）。TC-01 靜默，嚴禁情緒性攤平。`}
-      </div>
-    </div>
-  `;
-}
-
-// 把查詢的股票資料自動填入TC-03
-function loadTC(code){
-  const stk=S.stocks[code]||null;
-  if(stk?.regularMarketPrice){
-    document.getElementById('tcp').value=stk.regularMarketPrice.toFixed(2);
-    doTC();
-    document.getElementById('tcc').scrollIntoView({behavior:'smooth',block:'nearest'});
-  }
-}
-
-// ── RENDER: WATCHLIST ──
-function calcRisk(chg,fn,tn,vix){
-  let s=50;
-  if(chg>3)s-=20;else if(chg>1)s-=10;else if(chg<-3)s+=20;else if(chg<-1)s+=10;
-  if(fn>80000)s-=15;else if(fn>20000)s-=8;else if(fn<-80000)s+=15;else if(fn<-20000)s+=8;
-  if(tn>20000)s-=5;else if(tn<-20000)s+=5;
-  if(vix){if(vix>30)s+=15;else if(vix>22)s+=7;else if(vix<15)s-=5;}
-  return Math.max(0,Math.min(100,s));
-}
-function renderWL(dmap,t86m){
-  document.getElementById('wlbody').innerHTML=S.wl.map(code=>{
-    const stk=dmap[code];
-    if(!stk)return`<tr><td colspan="10" class="mono" style="color:var(--mu2)">${code} --</td></tr>`;
-    const chg=stk.regularMarketChangePercent||0;
-    const col=chg>0?'var(--gr)':chg<0?'var(--rd)':'var(--ac)';
-    const sg=chg>0?'+':'';
-    const t=t86m[code];
-    const fn=t?ni(t.ForeignInvestmentNetBuySellShares):0;
-    const tn=t?ni(t.InvestmentTrustNetBuySellShares):0;
-    const chip=fn+tn;
-    const cb=chip>0?'<span class="badge b-buy">偏多</span>':chip<0?'<span class="badge b-sell">偏空</span>':'<span class="badge b-hold">中立</span>';
-    const rs=calcRisk(chg,fn,tn,S.vix);
-    const rc=rs<30?'var(--gr)':rs<60?'var(--yw)':rs<80?'var(--rd)':'var(--pu)';
-    const rl=rs<30?'低':rs<60?'中':rs<80?'高':'極高';
-    return`<tr>
-      <td><span class="mono ca" style="font-size:10px;font-weight:700">${code}</span></td>
-      <td style="font-size:10px">${stk.shortName||code}</td>
-      <td style="text-align:right"><span class="mono" style="font-size:11px;font-weight:700;color:${col}">${fmt(stk.regularMarketPrice)}</span></td>
-      <td style="text-align:right"><span class="mono" style="font-size:10px;color:${col}">${sg}${chg.toFixed(2)}%</span></td>
-      <td style="text-align:right"><span class="mono ${fn>=0?'cg':'cr'}" style="font-size:9px">${fn>=0?'+':''}${fmtM(fn)}</span></td>
-      <td style="text-align:right"><span class="mono ${tn>=0?'cg':'cr'}" style="font-size:9px">${tn>=0?'+':''}${fmtM(tn)}</span></td>
-      <td style="text-align:right"><span class="mono cm" style="font-size:9px">${fmtM(stk.regularMarketVolume)}</span></td>
-      <td style="text-align:center">${cb}</td>
-      <td style="text-align:center">
-        <div style="display:flex;align-items:center;gap:4px;justify-content:center">
-          <div style="width:30px;height:3px;background:rgba(255,255,255,.07);border-radius:2px">
-            <div style="height:100%;width:${rs}%;background:${rc};border-radius:2px"></div>
-          </div>
-          <span class="mono" style="font-size:8px;color:${rc}">${rl}</span>
-        </div>
-      </td>
-      <td style="text-align:center">
-        <button class="abtn abtn-sm" onclick="doSearch('${code}')" style="margin-right:3px">分析</button>
-        <button class="abtn abtn-sm" onclick="rmWL('${code}')" style="border-color:rgba(244,67,54,.3);color:var(--rd);background:var(--rdd)">✕</button>
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-// ── USER ACTIONS ──
-async function doSearch(code){
-  const inp=document.getElementById('si');
-  const stk=(code||(inp.value.trim().toUpperCase())).replace(/\s/g,'');
-  if(!stk)return;
-  inp.value=stk;
-  document.getElementById('qpanel').innerHTML=
-    `<div style="text-align:center;padding:24px;color:var(--mu2);display:flex;align-items:center;justify-content:center;gap:7px"><span class="sp"></span>查詢 ${stk} 中（嘗試上市/上櫃）...</div>`;
-  const res=await fetchStk(stk);
-  S.stocks[stk]=res;
-  const t86e=S.t86.find(d=>d.Code===stk);
-  renderQuote(res,t86e);
-  if(res?.regularMarketPrice){
-    document.getElementById('tcp').value=res.regularMarketPrice.toFixed(2);
-    doTC();
-  }
-}
-function addWL(){
-  const inp=document.getElementById('wladd');
-  const code=inp.value.trim().toUpperCase().replace(/\s/g,'');
-  if(!code||S.wl.includes(code)){inp.value='';return;}
-  S.wl.push(code);inp.value='';
-  refreshWL();
-}
-function rmWL(code){
-  S.wl=S.wl.filter(c=>c!==code);
-  renderWL(S.stocks,Object.fromEntries(S.t86.map(d=>[d.Code,d])));
-}
-async function refreshWL(){
-  document.getElementById('wlbody').innerHTML='<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--mu2)"><span class="sp"></span> 更新中...</td></tr>';
-  const stocks={};
-  await Promise.all(S.wl.map(async code=>{const s=await fetchStk(code);if(s)stocks[code]=s;}));
-  S.stocks={...S.stocks,...stocks};
-  const t86m=Object.fromEntries(S.t86.map(d=>[d.Code,d]));
-  renderWL(S.stocks,t86m);
-}
-
-// ── HEADER BADGE ──
-function updateHBadge(){
-  const hasLive=Object.values(S.src).some(v=>v==='live'||v==='delayed');
-  document.getElementById('hbadge').innerHTML=hasLive
-    ?'<span class="badge b-live"><span class="ldot" style="margin-right:3px"></span>LIVE</span>'
-    :'<span class="badge b-demo">DEMO</span>';
-}
-
-// ── REFRESH ALL ──
-async function refreshAll(){
-  document.getElementById('hbadge').innerHTML='<span class="badge b-info"><span class="sp" style="margin-right:3px"></span>更新中</span>';
-  bootMsg('連接 TWSE OpenAPI T86...');
-  const[t86raw,fxRates,gRaw]=await Promise.all([
-    twseT86(),fetchFX(),
-    yahooQ(['^GSPC','^IXIC','^N225','^HSI','^DJI','^FTSE','GC=F','CL=F','^VIX','USDTWD=X'])
-  ]);
-  S.t86=t86raw||demoT86();
-  if(!t86raw)S.t86date='示範資料';
-  const gq=gRaw||demoGlobal();
-  S.gq=gq;
-  renderT86(S.t86);
-  renderFX(fxRates);
-  renderIndices(gq);
-  await refreshWL();
-  updateHBadge();
-  // Update flow label
-  document.getElementById('flow-label').textContent=S.flowDir==='buy'?'外資淨買超':'外資淨賣超';
-  document.getElementById('flow-label').style.color=S.flowDir==='buy'?'var(--gr)':'var(--rd)';
-}
-
-// ── BOOT ──
-function bootMsg(m){const el=document.getElementById('boot-msg');if(el)el.textContent=m;}
+// ── INIT ────────────────────────────────────────────────────
 async function init(){
   buildQuickTags();
+  buildSectorTabs();
   document.getElementById('si').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
-  document.getElementById('wladd').addEventListener('keydown',e=>{if(e.key==='Enter')addWL();});
-  // Demo ticker placeholder
-  buildTicker(demoGlobal().filter(q=>q.symbol!=='^VIX').map(q=>({s:q.shortName,p:q.regularMarketPrice,c:q.regularMarketChangePercent})));
-  bootMsg('載入世界地圖 (world-atlas)...');
+  document.getElementById('wl-add').addEventListener('keydown',e=>{if(e.key==='Enter')addWL();});
+  // 啟動示範 ticker
+  buildTicker(DEMO_GLOBAL.filter(q=>!['DX-Y.NYB','^VIX','^MOVE'].includes(q.symbol))
+    .map(q=>({s:q.shortName,p:q.regularMarketPrice,c:q.regularMarketChangePercent})));
+  bootMsg('載入世界地圖...');
   await initMap();
-  bootMsg('連接市場資料...');
+  bootMsg('連接全球資料（corsproxy + TWSE + Frankfurter）...');
   await refreshAll();
   // Auto-refresh
-  setInterval(refreshAll,isOpen()?60000:300000);
-  // Dismiss boot
+  setInterval(refreshAll, isOpen()?60000:300000);
+  // 關閉 boot
   const boot=document.getElementById('boot');
   boot.style.opacity='0';
   setTimeout(()=>{boot.style.display='none';},650);
 }
 
-window.addEventListener('DOMContentLoaded',init);
+window.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
